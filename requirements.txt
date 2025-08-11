@@ -1,0 +1,7 @@
+# Sony Projector Control System Requirements
+# No external dependencies - uses only Python standard library
+
+# For development/testing (optional)
+# pytest>=6.0.0
+# black>=21.0.0
+# flake8>=3.8.0
