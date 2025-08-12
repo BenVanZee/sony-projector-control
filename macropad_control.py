@@ -29,24 +29,33 @@ except ImportError:
 class MacropadController:
     """Controls macropad input and provides visual feedback"""
     
-    def __init__(self, projectors: list, debug_mode: bool = True):
+    def __init__(self, projectors: list, debug_mode: bool = True, button_layout: str = "9"):
         self.projectors = projectors
         self.debug_mode = debug_mode
+        self.button_layout = button_layout
         self.manager = ProjectorManager(projectors)
         self.running = False
         
-        # Macropad button mappings
-        self.button_actions = {
-            1: self.toggle_mute,           # Button 1: Toggle screen blank
-            2: self.toggle_power,          # Button 2: Toggle power
-            3: self.emergency_off,         # Button 3: Emergency power off
-            4: self.status_check,          # Button 4: Status check
-            5: self.blank_screen,          # Button 5: Force blank
-            6: self.free_screen,           # Button 6: Free screen (clear blanking)
-            7: self.toggle_freeze,         # Button 7: Toggle freeze
-            8: self.power_off_all,         # Button 8: Power off all
-            9: self.debug_mode_toggle      # Button 9: Toggle debug mode
-        }
+        # Macropad button mappings based on layout
+        if button_layout == "4":
+            self.button_actions = {
+                1: self.power_on_all,          # Button 1: Power ON all projectors
+                2: self.power_off_all,         # Button 2: Power OFF all projectors
+                3: self.toggle_mute,           # Button 3: Toggle screen blank
+                4: self.toggle_freeze,         # Button 4: Toggle freeze
+            }
+        else:  # Default 9-button layout
+            self.button_actions = {
+                1: self.toggle_mute,           # Button 1: Toggle screen blank
+                2: self.toggle_power,          # Button 2: Toggle power
+                3: self.power_on_all,          # Button 3: Power ON all projectors
+                4: self.status_check,          # Button 4: Status check
+                5: self.blank_screen,          # Button 5: Force blank
+                6: self.free_screen,           # Button 6: Free screen (clear blanking)
+                7: self.toggle_freeze,         # Button 7: Toggle freeze
+                8: self.power_off_all,         # Button 8: Power OFF all projectors
+                9: self.debug_mode_toggle      # Button 9: Toggle debug mode
+            }
         
         # Visual feedback states
         self.led_states = {}
@@ -55,8 +64,12 @@ class MacropadController:
     def setup_visual_feedback(self):
         """Setup visual feedback system"""
         if GPIO_AVAILABLE:
-            # Setup GPIO LEDs for visual feedback
-            self.led_pins = [17, 18, 27, 22, 23, 24, 25, 8, 7]  # Common Pi GPIO pins
+            # Setup GPIO LEDs for visual feedback based on layout
+            if self.button_layout == "4":
+                self.led_pins = [17, 18, 27, 22]  # 4 LEDs for 4-button layout
+            else:
+                self.led_pins = [17, 18, 27, 22, 23, 24, 25, 8, 7]  # 9 LEDs for 9-button layout
+                
             GPIO.setmode(GPIO.BCM)
             for pin in self.led_pins:
                 GPIO.setup(pin, GPIO.OUT)
@@ -138,21 +151,6 @@ class MacropadController:
             print(f"❌ Error toggling power: {e}")
             self.flash_led(2, 0.2)
             
-    def emergency_off(self):
-        """Emergency power off all projectors"""
-        print("🚨 EMERGENCY POWER OFF!")
-        try:
-            results = self.manager.power_all(False)
-            if all(results.values()):
-                print("✅ Emergency power off successful")
-                # Flash all LEDs rapidly
-                for i in range(1, 10):
-                    self.flash_led(i, 0.1)
-            else:
-                print(f"❌ Emergency power off failed: {results}")
-        except Exception as e:
-            print(f"❌ Emergency power off error: {e}")
-            
     def status_check(self):
         """Check status of all projectors"""
         print("📊 Checking projector status...")
@@ -167,6 +165,7 @@ class MacropadController:
                 print(f"\n{ip}:")
                 print(f"  Power: {info['power'] or 'UNKNOWN'}")
                 print(f"  Mute: {info['mute'] or 'UNKNOWN'}")
+                print(f"  Freeze: {info.get('freeze') or 'UNKNOWN'}")
                 print(f"  Online: {'Yes' if info['online'] else 'No'}")
                 
                 # Visual feedback based on status
@@ -223,8 +222,8 @@ class MacropadController:
             current_freeze = None
             
             for ip, info in status.items():
-                if info.get('mute') == 'FROZEN':
-                    current_freeze = True
+                if info.get('freeze') is not None:
+                    current_freeze = info['freeze'] == 'FROZEN'
                     break
                     
             if current_freeze:
@@ -265,6 +264,21 @@ class MacropadController:
         except Exception as e:
             print(f"❌ Error powering off: {e}")
             self.flash_led(8, 0.2)
+            
+    def power_on_all(self):
+        """Power on all projectors"""
+        print("🔌 Powering on all projectors...")
+        try:
+            results = self.manager.power_all(True)
+            if all(results.values()):
+                print("✅ All projectors powered on successfully")
+                self.flash_led(3, 1.0)
+            else:
+                print(f"❌ Power on failed: {results}")
+                self.flash_led(3, 0.2)
+        except Exception as e:
+            print(f"❌ Error powering on: {e}")
+            self.flash_led(3, 0.2)
             
     def debug_mode_toggle(self):
         """Toggle debug mode"""
@@ -317,8 +331,11 @@ class MacropadController:
             return False
             
         try:
-            # Setup GPIO buttons (common Pi pins)
-            button_pins = [5, 6, 13, 19, 26, 16, 20, 21, 12]
+            # Setup GPIO buttons based on layout
+            if self.button_layout == "4":
+                button_pins = [5, 6, 13, 19]  # 4 buttons for 4-button layout
+            else:
+                button_pins = [5, 6, 13, 19, 26, 16, 20, 21, 12]  # 9 buttons for 9-button layout
             
             for pin in button_pins:
                 GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -334,16 +351,25 @@ class MacropadController:
         """Main macropad loop"""
         print("🎹 Starting Macropad Control System")
         print("="*50)
-        print("Button Layout:")
-        print("1: Toggle Screen Blank")
-        print("2: Toggle Power")
-        print("3: Emergency Off")
-        print("4: Status Check")
-        print("5: Force Blank")
-        print("6: Free Screen (clear blanking)")
-        print("7: Toggle Freeze")
-        print("8: Power Off All")
-        print("9: Toggle Debug")
+        
+        if self.button_layout == "4":
+            print("4-Button Layout:")
+            print("1: Power ON All")
+            print("2: Power OFF All")
+            print("3: Toggle Screen Blank")
+            print("4: Toggle Freeze")
+        else:
+            print("9-Button Layout:")
+            print("1: Toggle Screen Blank")
+            print("2: Toggle Power")
+            print("3: Power ON All")
+            print("4: Status Check")
+            print("5: Force Blank")
+            print("6: Free Screen (clear blanking)")
+            print("7: Toggle Freeze")
+            print("8: Power OFF All")
+            print("9: Toggle Debug")
+            
         print("="*50)
         
         # Try USB macropad first
@@ -411,6 +437,14 @@ class MacropadController:
 
 def main():
     """Main function"""
+    import argparse
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Sony Projector Macropad Control')
+    parser.add_argument('--layout', choices=['4', '9'], default='9',
+                       help='Button layout: 4 or 9 buttons (default: 9)')
+    args = parser.parse_args()
+    
     # Import config for projectors and aliases
     try:
         from config import PROJECTORS, PROJECTOR_ALIASES
@@ -430,7 +464,8 @@ def main():
             'r': '10.10.10.3'
         }
     
-    macropad = MacropadController(projectors, debug_mode=True)
+    print(f"🎹 Starting {args.layout}-button macropad control system")
+    macropad = MacropadController(projectors, debug_mode=True, button_layout=args.layout)
     macropad.run()
 
 if __name__ == "__main__":

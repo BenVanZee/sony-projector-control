@@ -311,19 +311,32 @@ sudo systemctl start projector-control
 Control projectors with physical buttons using `macropad_control.py`:
 
 ```bash
-# Start macropad control system
+# Start 9-button macropad control system
 python3 macropad_control.py
+
+# Start 4-button macropad control system (essential functions only)
+python3 macropad_4button.py
+
+# Or use the flexible layout option
+python3 macropad_control.py --layout 4  # 4 buttons
+python3 macropad_control.py --layout 9  # 9 buttons (default)
 ```
 
-**Button Layout:**
+**4-Button Layout (Essential Functions):**
+- **Button 1**: Power ON all projectors
+- **Button 2**: Power OFF all projectors
+- **Button 3**: Toggle screen blank/unblank
+- **Button 4**: Toggle freeze (pause/resume video)
+
+**9-Button Layout (Full Features):**
 - **Button 1**: Toggle screen blank/unblank
 - **Button 2**: Toggle projector power
-- **Button 3**: Emergency power off
+- **Button 3**: Power ON all projectors
 - **Button 4**: Status check
 - **Button 5**: Force blank screen
 - **Button 6**: Free screen (clear blanking)
 - **Button 7**: Toggle freeze (pause/resume video)
-- **Button 8**: Power off all projectors
+- **Button 8**: Power OFF all projectors
 - **Button 9**: Toggle debug mode
 
 **Hardware Options:**
@@ -373,10 +386,12 @@ python3 example_usage.py
 projector-control/
 ├── projector_control.py      # Main application
 ├── projector_cli.py          # Command-line interface
-├── macropad_control.py       # Physical button control
+├── macropad_control.py       # 9-button physical button control
+├── macropad_4button.py      # 4-button essential functions control
 ├── debug_monitor.py          # Advanced debugging
 ├── test_gpio.py             # Hardware testing
 ├── test_connection.py        # Network testing
+├── test_freeze.py           # Freeze functionality testing
 ├── example_usage.py         # Nickname examples
 ├── config.py                # Configuration file
 ├── hardware_setup_guide.md  # Hardware setup guide
@@ -395,6 +410,9 @@ The system uses PJLink protocol commands:
 - `%1AVMT 31` - Mute video/audio
 - `%1AVMT 30` - Unmute video/audio
 - `%1AVMT ?` - Mute status query
+- `%2FREZ 1` - Freeze video (pause)
+- `%2FREZ 0` - Unfreeze video (resume)
+- `%2FREZ ?` - Freeze status query
 
 ## Contributing
 

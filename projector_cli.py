@@ -52,7 +52,7 @@ def main():
             for ip, info in status.items():
                 nickname = manager.get_nickname_by_ip(ip)
                 display_name = f"{nickname} ({ip})" if nickname else ip
-                print(f"{display_name}: Power={info['power']}, Mute={info['mute']}, Online={info['online']}")
+                print(f"{display_name}: Power={info['power']}, Mute={info['mute']}, Freeze={info.get('freeze')}, Online={info['online']}")
                 
         elif args.command == 'power':
             if not args.action:

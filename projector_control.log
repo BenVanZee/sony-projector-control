@@ -100,3 +100,217 @@
 2025-08-11 19:15:38,906 - INFO - Attempting to unfreeze screen for 10.10.10.3
 2025-08-11 19:15:38,912 - INFO - Unfreeze command successful for 10.10.10.3
 2025-08-11 19:15:38,913 - INFO - 10.10.10.3: Unfreeze screen successful
+2025-08-11 20:02:14,918 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:14,971 - INFO - 10.10.10.2: Mute successful
+2025-08-11 20:02:14,985 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:15,031 - INFO - 10.10.10.3: Mute successful
+2025-08-11 20:02:17,511 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:17,798 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:17,827 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:17,828 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:02:17,852 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:02:17,852 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:02:17,874 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:17,875 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:02:17,887 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:02:17,888 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:02:19,051 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:19,089 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:21,211 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:21,226 - INFO - 10.10.10.2: Mute successful
+2025-08-11 20:02:21,244 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:21,249 - INFO - 10.10.10.3: Mute successful
+2025-08-11 20:02:35,450 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:35,493 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:35,525 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:35,526 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:02:35,537 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:02:35,538 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:02:35,546 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:35,546 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:02:35,554 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:02:35,554 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:02:37,986 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:38,064 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:38,094 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:38,100 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:02:38,106 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:02:38,106 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:02:38,117 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:38,117 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:02:38,123 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:02:38,123 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:02:48,870 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:48,896 - INFO - 10.10.10.2: Free screen successful
+2025-08-11 20:02:48,913 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:48,944 - INFO - 10.10.10.3: Free screen successful
+2025-08-11 20:02:51,684 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:02:51,700 - INFO - 10.10.10.2: Free screen successful
+2025-08-11 20:02:51,710 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:02:51,716 - INFO - 10.10.10.3: Free screen successful
+2025-08-11 20:03:02,155 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:03:02,203 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:03:02,232 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:03:02,287 - INFO - 10.10.10.2: Mute successful
+2025-08-11 20:03:02,299 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:03:02,344 - INFO - 10.10.10.3: Mute successful
+2025-08-11 20:04:11,272 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:11,355 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:11,437 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:11,438 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:04:11,448 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:04:11,448 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:04:11,464 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:11,464 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:04:11,480 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:04:11,481 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:04:20,166 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:20,214 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:20,252 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:20,253 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:04:20,274 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:04:20,275 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:04:20,287 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:20,287 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:04:20,304 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:04:20,304 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:04:22,787 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:22,827 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:22,862 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:22,862 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:04:22,879 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:04:22,880 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:04:23,059 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:23,060 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:04:23,075 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:04:23,076 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:04:44,096 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:44,137 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:44,170 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:44,171 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:04:44,194 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:04:44,194 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:04:44,212 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:44,212 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:04:44,229 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:04:44,229 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:04:47,781 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:47,823 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:47,856 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:04:47,857 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:04:47,880 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:04:47,881 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:04:47,896 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:04:47,896 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:04:47,901 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:04:47,902 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:05:20,366 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:20,423 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:20,461 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:20,461 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:05:20,484 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:05:20,484 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:05:20,496 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:20,496 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:05:20,500 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:05:20,500 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:05:23,605 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:23,656 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:23,703 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:23,703 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:05:23,720 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:05:23,720 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:05:23,731 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:23,731 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:05:23,737 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:05:23,737 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:05:45,079 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:45,133 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:45,175 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:45,176 - INFO - Attempting to unfreeze screen for 10.10.10.2
+2025-08-11 20:05:45,191 - INFO - Unfreeze command successful for 10.10.10.2
+2025-08-11 20:05:45,191 - INFO - 10.10.10.2: Unfreeze screen successful
+2025-08-11 20:05:45,206 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:45,207 - INFO - Attempting to unfreeze screen for 10.10.10.3
+2025-08-11 20:05:45,223 - INFO - Unfreeze command successful for 10.10.10.3
+2025-08-11 20:05:45,224 - INFO - 10.10.10.3: Unfreeze screen successful
+2025-08-11 20:05:47,159 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:47,419 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:47,469 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:47,469 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:05:47,492 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:05:47,493 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:05:47,599 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:47,600 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:05:47,617 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:05:47,617 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:05:49,091 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:49,144 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:49,187 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:49,188 - INFO - Attempting to unfreeze screen for 10.10.10.2
+2025-08-11 20:05:49,211 - INFO - Unfreeze command successful for 10.10.10.2
+2025-08-11 20:05:49,212 - INFO - 10.10.10.2: Unfreeze screen successful
+2025-08-11 20:05:49,229 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:49,229 - INFO - Attempting to unfreeze screen for 10.10.10.3
+2025-08-11 20:05:49,246 - INFO - Unfreeze command successful for 10.10.10.3
+2025-08-11 20:05:49,247 - INFO - 10.10.10.3: Unfreeze screen successful
+2025-08-11 20:05:50,839 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:50,910 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:50,962 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:50,963 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:05:50,980 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:05:50,980 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:05:51,024 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:51,025 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:05:51,029 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:05:51,030 - INFO - 10.10.10.3: Freeze screen successful
+2025-08-11 20:05:53,384 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:53,433 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:53,480 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:05:53,481 - INFO - Attempting to unfreeze screen for 10.10.10.2
+2025-08-11 20:05:53,499 - INFO - Unfreeze command successful for 10.10.10.2
+2025-08-11 20:05:53,499 - INFO - 10.10.10.2: Unfreeze screen successful
+2025-08-11 20:05:53,507 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:05:53,507 - INFO - Attempting to unfreeze screen for 10.10.10.3
+2025-08-11 20:05:53,516 - INFO - Unfreeze command successful for 10.10.10.3
+2025-08-11 20:05:53,516 - INFO - 10.10.10.3: Unfreeze screen successful
+2025-08-11 20:15:06,296 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:15:06,363 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-08-11 20:15:06,363 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-11 20:15:06,363 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-11 20:15:06,388 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:15:06,408 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-08-11 20:15:06,409 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-11 20:15:06,409 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-11 20:15:06,463 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:15:06,509 - INFO - 10.10.10.2: Mute successful
+2025-08-11 20:15:06,530 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:15:06,576 - INFO - 10.10.10.3: Mute successful
+2025-08-11 20:15:07,456 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:15:07,487 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-08-11 20:15:07,488 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-11 20:15:07,488 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-11 20:15:07,684 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:15:07,701 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-08-11 20:15:07,703 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-11 20:15:07,704 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-11 20:15:07,720 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:15:07,777 - INFO - 10.10.10.2: Unmute successful
+2025-08-11 20:15:07,800 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:15:07,820 - INFO - 10.10.10.3: Unmute successful
+2025-08-11 20:32:22,440 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:32:22,476 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-08-11 20:32:22,476 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-11 20:32:22,480 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-11 20:32:22,512 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:32:22,530 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-08-11 20:32:22,530 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-11 20:32:22,530 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-11 20:32:22,563 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-11 20:32:22,564 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-08-11 20:32:22,591 - INFO - Freeze command successful for 10.10.10.2
+2025-08-11 20:32:22,591 - INFO - 10.10.10.2: Freeze screen successful
+2025-08-11 20:32:22,630 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-11 20:32:22,631 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-08-11 20:32:22,645 - INFO - Freeze command successful for 10.10.10.3
+2025-08-11 20:32:22,645 - INFO - 10.10.10.3: Freeze screen successful

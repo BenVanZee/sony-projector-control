@@ -6,24 +6,40 @@ This guide shows you how to build a custom macropad for controlling your Sony pr
 
 ### Parts Needed
 - Raspberry Pi (any model with GPIO pins)
-- 9x Tactile push buttons
-- 9x LEDs (any color)
-- 9x 220Ω resistors
+- 4x or 9x Tactile push buttons (choose your layout)
+- 4x or 9x LEDs (any color)
+- 4x or 9x 220Ω resistors
 - Breadboard and jumper wires
 - Enclosure/case (optional)
 
-### Wiring Diagram
+### Layout Options
+
+#### 4-Button Layout (Essential Functions)
 ```
-Button Layout (9 buttons):
+┌─────┬─────┐
+│  1  │  2  │  ← Row 1: Power ON, Power OFF
+├─────┼─────┤
+│  3  │  4  │  ← Row 2: Toggle Blank, Toggle Freeze
+└─────┴─────┘
+
+GPIO Pin Mapping (4 buttons):
+Button 1 → GPIO 5   LED → GPIO 17  (Power ON)
+Button 2 → GPIO 6   LED → GPIO 18  (Power OFF)
+Button 3 → GPIO 13  LED → GPIO 27  (Toggle Blank)
+Button 4 → GPIO 19  LED → GPIO 22  (Toggle Freeze)
+```
+
+#### 9-Button Layout (Full Features)
+```
 ┌─────┬─────┬─────┐
-│  1  │  2  │  3  │  ← Row 1: Screen, Power, Emergency
+│  1  │  2  │  3  │  ← Row 1: Screen, Power, Power ON
 ├─────┼─────┼─────┤
 │  4  │  5  │  6  │  ← Row 2: Status, Blank, Unblank  
 ├─────┼─────┼─────┤
-│  7  │  8  │  9  │  ← Row 3: Power On, Power Off, Debug
+│  7  │  8  │  9  │  ← Row 3: Freeze, Power OFF, Debug
 └─────┴─────┴─────┘
 
-GPIO Pin Mapping:
+GPIO Pin Mapping (9 buttons):
 Button 1 → GPIO 5   LED → GPIO 17
 Button 2 → GPIO 6   LED → GPIO 18  
 Button 3 → GPIO 13  LED → GPIO 27
@@ -42,14 +58,22 @@ Button 9 → GPIO 12  LED → GPIO 7
 4. **Pull-up resistors**: Pi has internal pull-ups, so buttons work when pressed
 
 ### Button Functions
+
+#### 4-Button Layout (Essential)
+- **Button 1**: Power ON all projectors
+- **Button 2**: Power OFF all projectors
+- **Button 3**: Toggle screen blank/unblank
+- **Button 4**: Toggle freeze (pause/resume video)
+
+#### 9-Button Layout (Full Features)
 - **Button 1**: Toggle screen blank/unblank
 - **Button 2**: Toggle projector power
-- **Button 3**: Emergency power off
+- **Button 3**: Power ON all projectors
 - **Button 4**: Status check
 - **Button 5**: Force blank screen
 - **Button 6**: Free screen (clear blanking)
 - **Button 7**: Toggle freeze (pause/resume video)
-- **Button 8**: Power off all projectors
+- **Button 8**: Power OFF all projectors
 - **Button 9**: Toggle debug mode
 
 ## Option 2: USB Macropad (Easier)
@@ -61,16 +85,24 @@ Button 9 → GPIO 12  LED → GPIO 7
 - **Corsair K95 RGB** (keyboard with macro keys)
 
 ### Setup
-1. Install the macropad software
-2. Program the keys with the commands:
-   - Key 1: `python3 projector_cli.py mute --action toggle`
-   - Key 2: `python3 projector_cli.py power --action toggle`
-   - Key 3: `python3 projector_cli.py power --action off`
-   - Key 4: `python3 projector_cli.py status`
-   - Key 5: `python3 projector_cli.py mute --action on`
-   - Key 6: `python3 projector_cli.py mute --action off`
-   - Key 7: `python3 projector_cli.py power --action on`
-   - Key 8: `python3 projector_cli.py power --action off`
+
+#### 4-Button USB Macropad
+Program the keys with the commands:
+- Key 1: `python3 projector_cli.py power --action on`
+- Key 2: `python3 projector_cli.py power --action off`
+- Key 3: `python3 projector_cli.py mute --action toggle`
+- Key 4: `python3 projector_cli.py freeze --action toggle`
+
+#### 9-Button USB Macropad
+Program the keys with the commands:
+- Key 1: `python3 projector_cli.py mute --action toggle`
+- Key 2: `python3 projector_cli.py power --action toggle`
+- Key 3: `python3 projector_cli.py power --action on`
+- Key 4: `python3 projector_cli.py status`
+- Key 5: `python3 projector_cli.py mute --action on`
+- Key 6: `python3 projector_cli.py mute --action off`
+- Key 7: `python3 projector_cli.py freeze --action toggle`
+- Key 8: `python3 projector_cli.py power --action off`
 
 ## Option 3: Web Interface (Most Flexible)
 
@@ -149,7 +181,10 @@ python3 debug_monitor.py
 # Test basic connectivity
 python3 test_connection.py
 
-# Test macropad
+# Test 4-button macropad
+python3 macropad_4button.py
+
+# Test 9-button macropad
 python3 macropad_control.py
 
 # Test debugging
@@ -171,7 +206,7 @@ Create custom labels for your buttons:
 Use different LED colors for different functions:
 - **Green**: Success/ready
 - **Yellow**: Warning/processing  
-- **Red**: Error/emergency
+- **Red**: Error/offline
 - **Blue**: Status/info
 
 ### Enclosure
@@ -182,10 +217,11 @@ Use different LED colors for different functions:
 
 ## Safety Features
 
-### Emergency Stop
-- Button 3 provides emergency power off
-- All projectors shut down immediately
-- Visual and audio feedback
+### Power Control
+- Button 3 provides dedicated power ON
+- Button 8 provides dedicated power OFF
+- Clear separation of power operations
+- Safe for church environment
 
 ### Status Monitoring
 - Continuous status checking
@@ -200,6 +236,15 @@ Use different LED colors for different functions:
 ## Cost Breakdown
 
 ### Raspberry Pi Setup
+
+#### 4-Button Layout
+- Raspberry Pi: $35-50
+- Buttons and LEDs: $5-10
+- Resistors and wires: $3-5
+- Enclosure: $10-20
+- **Total: $53-85**
+
+#### 9-Button Layout
 - Raspberry Pi: $35-50
 - Buttons and LEDs: $10-20
 - Resistors and wires: $5-10

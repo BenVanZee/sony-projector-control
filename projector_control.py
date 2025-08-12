@@ -161,11 +161,28 @@ class ProjectorController:
     def get_freeze_status(self) -> Optional[str]:
         """Get freeze status using correct PJLink FREZ command"""
         response = self.send_command("%2FREZ ?\r")
+        logger.info(f"Freeze status response from {self.ip}: {response}")
+        
         if response:
-            if response == "%2FREZ=0":
-                return "NORMAL"
-            elif response == "%2FREZ=1":
-                return "FROZEN"
+            # Import config for status mapping
+            try:
+                from config import FREEZE_STATUS
+                logger.info(f"Available freeze status patterns: {FREEZE_STATUS}")
+                # Reverse lookup to find the status
+                for response_pattern, status_name in FREEZE_STATUS.items():
+                    if response == response_pattern:
+                        logger.info(f"Matched freeze status: {response_pattern} -> {status_name}")
+                        return status_name
+                logger.warning(f"No matching freeze status pattern found for response: {response}")
+            except ImportError:
+                logger.warning("Config not available, using fallback parsing")
+                # Fallback parsing if config not available
+                if response == "%2FREZ=0":
+                    return "NORMAL"
+                elif response == "%2FREZ=1":
+                    return "FROZEN"
+        else:
+            logger.warning(f"No freeze status response from {self.ip}")
         return None
         
     def test_freeze_commands(self) -> Dict[str, bool]:
@@ -229,11 +246,13 @@ class ProjectorManager:
                 with controller:
                     power = controller.get_power_status()
                     mute = controller.get_mute_status()
+                    freeze = controller.get_freeze_status()
                     lamp_hours = controller.get_lamp_hours()
                     
                     status[ip] = {
                         'power': power,
                         'mute': mute,
+                        'freeze': freeze,
                         'lamp_hours': lamp_hours,
                         'online': power is not None
                     }
@@ -242,6 +261,7 @@ class ProjectorManager:
                 status[ip] = {
                     'power': None,
                     'mute': None,
+                    'freeze': None,
                     'lamp_hours': None,
                     'online': False
                 }
