@@ -127,6 +127,65 @@ class ProjectorController:
         response = self.send_command(command)
         return response == "%1AVMT=OK"
         
+    def free_screen(self) -> bool:
+        """Free the screen (unmute/clear any blanking)"""
+        command = "%1AVMT 30\r"  # Unmute video and audio
+        response = self.send_command(command)
+        return response == "%1AVMT=OK"
+        
+    def freeze_screen(self, freeze: bool) -> bool:
+        """Freeze/unfreeze the video image using correct PJLink FREZ command"""
+        if freeze:
+            # Use the correct PJLink freeze command: %2FREZ 1
+            logger.info(f"Attempting to freeze screen for {self.ip} using FREZ command")
+            command = "%2FREZ 1\r"
+            response = self.send_command(command)
+            if response == "%2FREZ=OK":
+                logger.info(f"Freeze command successful for {self.ip}")
+                return True
+            else:
+                logger.warning(f"Freeze command failed for {self.ip}: {response}")
+                return False
+        else:
+            # Unfreeze using %2FREZ 0
+            logger.info(f"Attempting to unfreeze screen for {self.ip}")
+            command = "%2FREZ 0\r"
+            response = self.send_command(command)
+            if response == "%2FREZ=OK":
+                logger.info(f"Unfreeze command successful for {self.ip}")
+                return True
+            else:
+                logger.warning(f"Unfreeze command failed for {self.ip}: {response}")
+                return False
+        
+    def get_freeze_status(self) -> Optional[str]:
+        """Get freeze status using correct PJLink FREZ command"""
+        response = self.send_command("%2FREZ ?\r")
+        if response:
+            if response == "%2FREZ=0":
+                return "NORMAL"
+            elif response == "%2FREZ=1":
+                return "FROZEN"
+        return None
+        
+    def test_freeze_commands(self) -> Dict[str, bool]:
+        """Test which freeze commands work on this projector"""
+        commands = {
+            "AVMT 32": "%1AVMT 32\r",
+            "AVMT 33": "%1AVMT 33\r", 
+            "AVMT 34": "%1AVMT 34\r",
+            "AVMT 35": "%1AVMT 35\r"
+        }
+        
+        results = {}
+        for name, command in commands.items():
+            response = self.send_command(command)
+            success = response == "%1AVMT=OK"
+            results[name] = success
+            logger.info(f"Freeze command {name}: {'✅' if success else '❌'}")
+            
+        return results
+        
     def get_lamp_hours(self) -> Optional[int]:
         """Get lamp hours (if supported)"""
         response = self.send_command("%1LAMP ?\r")
@@ -216,6 +275,35 @@ class ProjectorManager:
                 results[ip] = False
         return results
         
+    def free_all_screens(self) -> Dict[str, bool]:
+        """Free all screens (unmute/clear blanking)"""
+        results = {}
+        for ip, controller in self.controllers.items():
+            try:
+                with controller:
+                    success = controller.free_screen()
+                    results[ip] = success
+                    logger.info(f"{ip}: Free screen {'successful' if success else 'failed'}")
+            except Exception as e:
+                logger.error(f"Failed to free screen on {ip}: {e}")
+                results[ip] = False
+        return results
+        
+    def freeze_all_screens(self, freeze: bool) -> Dict[str, bool]:
+        """Freeze/unfreeze all screens"""
+        results = {}
+        for ip, controller in self.controllers.items():
+            try:
+                with controller:
+                    success = controller.freeze_screen(freeze)
+                    results[ip] = success
+                    action = "Freeze" if freeze else "Unfreeze"
+                    logger.info(f"{ip}: {action} screen {'successful' if success else 'failed'}")
+            except Exception as e:
+                logger.error(f"Failed to freeze screen on {ip}: {e}")
+                results[ip] = False
+        return results
+        
     def close(self):
         """Close all connections"""
         for controller in self.controllers.values():
@@ -266,10 +354,13 @@ def main():
             print("2. Turn all projectors OFF")
             print("3. Mute all projectors (blank screen)")
             print("4. Unmute all projectors")
-            print("5. Refresh status")
-            print("6. Exit")
+            print("5. Free all screens (clear blanking)")
+            print("6. Freeze all screens (pause video)")
+            print("7. Unfreeze all screens (resume video)")
+            print("8. Refresh status")
+            print("9. Exit")
             
-            choice = input("\nEnter choice (1-6): ").strip()
+            choice = input("\nEnter choice (1-9): ").strip()
             
             if choice == "1":
                 results = manager.power_all(True)
@@ -288,9 +379,21 @@ def main():
                 print("Unmute results:", results)
                 
             elif choice == "5":
-                continue  # Refresh status
+                results = manager.free_all_screens()
+                print("Free screen results:", results)
                 
             elif choice == "6":
+                results = manager.freeze_all_screens(True)
+                print("Freeze screen results:", results)
+                
+            elif choice == "7":
+                results = manager.freeze_all_screens(False)
+                print("Unfreeze screen results:", results)
+                
+            elif choice == "8":
+                continue  # Refresh status
+                
+            elif choice == "9":
                 print("Exiting...")
                 break
                 

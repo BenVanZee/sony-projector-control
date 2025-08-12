@@ -25,9 +25,7 @@ PROJECTOR_ALIASES = {
     'left': '10.10.10.2',
     'right': '10.10.10.3',
     'l': '10.10.10.2',
-    'r': '10.10.10.3',
-    'main': '10.10.10.2',
-    'side': '10.10.10.3'
+    'r': '10.10.10.3'
 }
 
 # Network settings
@@ -47,6 +45,10 @@ PJLINK_COMMANDS = {
     'power_status': '%1POWR ?\r',
     'mute_on': '%1AVMT 31\r',
     'mute_off': '%1AVMT 30\r',
+    'free_screen': '%1AVMT 30\r',  # Free screen (same as unmute)
+    'freeze_on': '%2FREZ 1\r',     # Freeze screen (pause video) - CORRECT PJLink command
+    'freeze_off': '%2FREZ 0\r',    # Unfreeze screen (resume video) - CORRECT PJLink command
+    'freeze_status': '%2FREZ ?\r',  # Freeze status query - CORRECT PJLink command
     'mute_status': '%1AVMT ?\r',
     'lamp_hours': '%1LAMP ?\r',
     'input_status': '%1INPT ?\r',
@@ -62,6 +64,11 @@ POWER_STATUS = {
 }
 
 MUTE_STATUS = {
-    '%1AVMT=30': 'UNMUTED',
+    '%1AVMT=30': 'NORMAL',
     '%1AVMT=31': 'MUTED'
+}
+
+FREEZE_STATUS = {
+    '%2FREZ=0': 'NORMAL',
+    '%2FREZ=1': 'FROZEN'
 }

@@ -47,8 +47,8 @@ Button 9 → GPIO 12  LED → GPIO 7
 - **Button 3**: Emergency power off
 - **Button 4**: Status check
 - **Button 5**: Force blank screen
-- **Button 6**: Force unblank screen
-- **Button 7**: Power on all projectors
+- **Button 6**: Free screen (clear blanking)
+- **Button 7**: Toggle freeze (pause/resume video)
 - **Button 8**: Power off all projectors
 - **Button 9**: Toggle debug mode
 

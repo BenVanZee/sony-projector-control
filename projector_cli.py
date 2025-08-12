@@ -10,7 +10,7 @@ from projector_control import ProjectorManager
 
 def main():
     parser = argparse.ArgumentParser(description='Control Sony VPL-PHZ61 projectors')
-    parser.add_argument('command', choices=['status', 'power', 'mute'], 
+    parser.add_argument('command', choices=['status', 'power', 'mute', 'free', 'freeze'], 
                        help='Command to execute')
     parser.add_argument('--action', choices=['on', 'off', 'toggle'], 
                        help='Action for power/mute commands')
@@ -98,6 +98,34 @@ def main():
                     else:
                         manager.mute_all(True)
                         print("Muted all projectors")
+                    break
+                    
+        elif args.command == 'free':
+            print("Freeing all screens (clearing blanking)...")
+            results = manager.free_all_screens()
+            print("Free screen results:", results)
+            
+        elif args.command == 'freeze':
+            if not args.action:
+                print("Error: --action required for freeze command")
+                sys.exit(1)
+                
+            if args.action == 'on':
+                results = manager.freeze_all_screens(True)
+                print("Freeze screen results:", results)
+            elif args.action == 'off':
+                results = manager.freeze_all_screens(False)
+                print("Unfreeze screen results:", results)
+            elif args.action == 'toggle':
+                # Get current status and toggle
+                status = manager.get_all_status()
+                for ip, info in status.items():
+                    if info.get('mute') == 'FROZEN':
+                        manager.freeze_all_screens(False)
+                        print("Unfroze all screens")
+                    else:
+                        manager.freeze_all_screens(True)
+                        print("Froze all screens")
                     break
                     
     finally:

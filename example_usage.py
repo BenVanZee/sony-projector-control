@@ -72,6 +72,9 @@ def main():
         print("  python3 projector_cli.py power --action on --projectors left right")
         print("  python3 projector_cli.py mute --action on --projectors left")
         print("  python3 projector_cli.py mute --action off --projectors right")
+        print("  python3 projector_cli.py free --projectors left right")
+        print("  python3 projector_cli.py freeze --action on --projectors left right")
+        print("  python3 projector_cli.py freeze --action off --projectors left right")
         print("  python3 projector_cli.py status --projectors l r")
         
         # Example 4: Show how to add more nicknames

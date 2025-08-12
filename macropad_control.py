@@ -42,8 +42,8 @@ class MacropadController:
             3: self.emergency_off,         # Button 3: Emergency power off
             4: self.status_check,          # Button 4: Status check
             5: self.blank_screen,          # Button 5: Force blank
-            6: self.unblank_screen,        # Button 6: Force unblank
-            7: self.power_on_all,          # Button 7: Power on all
+            6: self.free_screen,           # Button 6: Free screen (clear blanking)
+            7: self.toggle_freeze,         # Button 7: Toggle freeze
             8: self.power_off_all,         # Button 8: Power off all
             9: self.debug_mode_toggle      # Button 9: Toggle debug mode
         }
@@ -199,34 +199,55 @@ class MacropadController:
             print(f"❌ Error blanking screens: {e}")
             self.flash_led(5, 0.2)
             
-    def unblank_screen(self):
-        """Force unblank all screens"""
-        print("🖥️ Forcing screen unblank...")
+    def free_screen(self):
+        """Free all screens (clear any blanking)"""
+        print("🆓 Freeing all screens...")
         try:
-            results = self.manager.mute_all(False)
+            results = self.manager.free_all_screens()
             if all(results.values()):
-                print("✅ All screens unblanked successfully")
+                print("✅ All screens freed successfully")
                 self.flash_led(6, 1.0)
             else:
-                print(f"❌ Screen unblank failed: {results}")
+                print(f"❌ Screen free failed: {results}")
                 self.flash_led(6, 0.2)
         except Exception as e:
-            print(f"❌ Error unblanking screens: {e}")
+            print(f"❌ Error freeing screens: {e}")
             self.flash_led(6, 0.2)
             
-    def power_on_all(self):
-        """Power on all projectors"""
-        print("🔌 Powering on all projectors...")
+    def toggle_freeze(self):
+        """Toggle freeze on all screens"""
+        print("❄️ Toggling screen freeze...")
         try:
-            results = self.manager.power_all(True)
-            if all(results.values()):
-                print("✅ All projectors powered on successfully")
-                self.flash_led(7, 1.0)
+            # Get current status and toggle
+            status = self.manager.get_all_status()
+            current_freeze = None
+            
+            for ip, info in status.items():
+                if info.get('mute') == 'FROZEN':
+                    current_freeze = True
+                    break
+                    
+            if current_freeze:
+                # Unfreeze
+                results = self.manager.freeze_all_screens(False)
+                if all(results.values()):
+                    print("✅ All screens unfrozen successfully")
+                    self.flash_led(7, 1.0)
+                else:
+                    print(f"❌ Unfreeze failed: {results}")
+                    self.flash_led(7, 0.2)
             else:
-                print(f"❌ Power on failed: {results}")
-                self.flash_led(7, 0.2)
+                # Freeze
+                results = self.manager.freeze_all_screens(True)
+                if all(results.values()):
+                    print("✅ All screens frozen successfully")
+                    self.flash_led(7, 1.0)
+                else:
+                    print(f"❌ Freeze failed: {results}")
+                    self.flash_led(7, 0.2)
+                    
         except Exception as e:
-            print(f"❌ Error powering on: {e}")
+            print(f"❌ Error toggling freeze: {e}")
             self.flash_led(7, 0.2)
             
     def power_off_all(self):
@@ -319,8 +340,8 @@ class MacropadController:
         print("3: Emergency Off")
         print("4: Status Check")
         print("5: Force Blank")
-        print("6: Force Unblank")
-        print("7: Power On All")
+        print("6: Free Screen (clear blanking)")
+        print("7: Toggle Freeze")
         print("8: Power Off All")
         print("9: Toggle Debug")
         print("="*50)

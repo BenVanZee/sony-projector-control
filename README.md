@@ -97,12 +97,14 @@ PROJECTOR_ALIASES = {
    python3 projector_cli.py status
    
    # Control specific projectors by nickname
-   python3 projector_cli.py power --action on --projectors left right
-   python3 projector_cli.py mute --action on --projectors left
-   python3 projector_cli.py mute --action off --projectors right
-   
-   # Use shorthand nicknames
-   python3 projector_cli.py power --action off --projectors l r
+python3 projector_cli.py power --action on --projectors left right
+python3 projector_cli.py mute --action on --projectors left
+python3 projector_cli.py mute --action off --projectors right
+python3 projector_cli.py free --projectors left right
+python3 projector_cli.py freeze --action on --projectors left right
+
+# Use shorthand nicknames
+python3 projector_cli.py power --action off --projectors l r
    ```
 
 ### Interactive Mode
@@ -138,6 +140,21 @@ python3 projector_cli.py mute --action on
 
 # Unblank all screens
 python3 projector_cli.py mute --action off
+
+# Free all screens (clear any blanking)
+python3 projector_cli.py free
+
+# Freeze all screens (pause video)
+python3 projector_cli.py freeze --action on
+
+# Unfreeze all screens (resume video)
+python3 projector_cli.py freeze --action off
+
+# Toggle freeze state
+python3 projector_cli.py freeze --action toggle
+
+**✅ Note:** Freeze now uses the correct PJLink FREZ command (`%2FREZ 1`/`%2FREZ 0`) 
+which properly pauses video without causing a black screen.
 
 # Toggle power state
 python3 projector_cli.py power --action toggle
@@ -304,8 +321,8 @@ python3 macropad_control.py
 - **Button 3**: Emergency power off
 - **Button 4**: Status check
 - **Button 5**: Force blank screen
-- **Button 6**: Force unblank screen
-- **Button 7**: Power on all projectors
+- **Button 6**: Free screen (clear blanking)
+- **Button 7**: Toggle freeze (pause/resume video)
 - **Button 8**: Power off all projectors
 - **Button 9**: Toggle debug mode
 
