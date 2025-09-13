@@ -35,8 +35,8 @@ python3 /opt/projector-control/projector_cli.py status
 sudo mkdir -p /opt/projector-control
 cd /opt/projector-control
 
-# Set proper permissions
-sudo chown pi:pi /opt/projector-control
+# Set proper permissions (replace 'your-username' with your actual username)
+sudo chown your-username:your-username /opt/projector-control
 ```
 
 ### 2. Copy Project Files
@@ -47,8 +47,8 @@ sudo chown pi:pi /opt/projector-control
 # If using Git:
 git clone https://github.com/your-repo/sony-projector-control.git .
 
-# If using SCP from your computer:
-# scp -r /path/to/sony-projector-control/* pi@your-pi-ip:/opt/projector-control/
+# If using SCP from your computer (replace 'your-username' with your actual username):
+# scp -r /path/to/sony-projector-control/* your-username@your-pi-ip:/opt/projector-control/
 ```
 
 ### 3. Install Dependencies
@@ -196,7 +196,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
+User=YOUR_USERNAME
 WorkingDirectory=/opt/projector-control
 Environment=PATH=/opt/projector-control/venv/bin
 ExecStart=/opt/projector-control/venv/bin/python3 macropad_control.py
@@ -282,13 +282,13 @@ python3 macropad_control.py --test
 
 1. **Permission Denied**
    ```bash
-   sudo chown -R pi:pi /opt/projector-control
+   sudo chown -R $(whoami):$(whoami) /opt/projector-control
    chmod +x /opt/projector-control/*.py
    ```
 
 2. **GPIO Permission Issues**
    ```bash
-   sudo usermod -a -G gpio pi
+   sudo usermod -a -G gpio $(whoami)
    # Log out and back in
    ```
 
@@ -332,12 +332,25 @@ sudo ufw allow from 10.10.10.0/24
 sudo ufw enable
 ```
 
+### User-Agnostic Setup
+This setup works with any user account, not just the default "pi" user. The setup script automatically detects the current user and configures everything accordingly.
+
+**Key features:**
+- Uses `$(whoami)` to detect the current user
+- Sets up GPIO permissions for the current user
+- Creates systemd service with the current user
+- Works with any username you create
+
 ### User Permissions
 ```bash
 # Create dedicated user (optional)
 sudo useradd -m -s /bin/bash projector
 sudo usermod -a -G gpio projector
 sudo chown -R projector:projector /opt/projector-control
+
+# Switch to the new user and run setup
+sudo su - projector
+# Then run the setup script as the new user
 ```
 
 ## Maintenance

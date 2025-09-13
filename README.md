@@ -116,6 +116,8 @@ PROJECTOR_GROUPS = {
    python3 projector_control.py
    ```
 
+**Note:** This setup works with any user account, not just the default "pi" user. The setup script automatically detects the current user and configures everything accordingly.
+
 3. **Use command-line interface with nicknames:**
    ```bash
    # Check status of all projectors
@@ -378,15 +380,18 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/projector-control
-ExecStart=/usr/bin/python3 /home/pi/projector-control/projector_control.py
+User=YOUR_USERNAME
+WorkingDirectory=/opt/projector-control
+Environment=PATH=/opt/projector-control/venv/bin
+ExecStart=/opt/projector-control/venv/bin/python3 projector_control.py
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+**Note:** Replace `YOUR_USERNAME` with your actual username. The setup script automatically detects the current user and creates the service file with the correct username.
 
 Enable and start the service:
 
