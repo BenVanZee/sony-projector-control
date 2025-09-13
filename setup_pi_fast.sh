@@ -1,11 +1,13 @@
 #!/bin/bash
-# Sony Projector Control - Raspberry Pi Setup Script
-# This script automates the installation and configuration
+# Sony Projector Control - Fast Raspberry Pi Setup Script
+# This script skips system updates for faster installation
 
 set -e  # Exit on any error
 
-echo "🎬 Sony Projector Control - Pi Setup Script"
-echo "=========================================="
+echo "🎬 Sony Projector Control - Fast Pi Setup Script"
+echo "==============================================="
+echo "⚠️  This version skips system updates for faster installation"
+echo ""
 
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then
@@ -29,16 +31,9 @@ sudo mkdir -p /opt/projector-control
 sudo chown $(whoami):$(whoami) /opt/projector-control
 cd /opt/projector-control
 
-# Update system (optional - can be slow)
-echo "🔄 Updating system packages..."
-read -p "Update system packages? This can be slow (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    sudo apt update && sudo apt upgrade -y
-else
-    echo "⏭️  Skipping system updates (you can run 'sudo apt update && sudo apt upgrade' later)"
-    sudo apt update  # Still update package lists for dependencies
-fi
+# Update package lists only (no system upgrade)
+echo "📋 Updating package lists..."
+sudo apt update
 
 # Install dependencies
 echo "📦 Installing dependencies..."
@@ -256,8 +251,8 @@ echo "🔄 Reloading systemd..."
 sudo systemctl daemon-reload
 
 echo ""
-echo "🎉 Setup Complete!"
-echo "=================="
+echo "🎉 Fast Setup Complete!"
+echo "======================"
 echo ""
 echo "Current user: $(whoami)"
 echo "Project directory: /opt/projector-control"
@@ -288,3 +283,6 @@ echo "   scp -r /path/to/sony-projector-control/* $(whoami)@your-pi-ip:/opt/proj
 echo ""
 echo "📝 Note: This setup works with any user account, not just 'pi'"
 echo "   The systemd service will run as: $(whoami)"
+echo ""
+echo "⚠️  Remember to update your system later:"
+echo "   sudo apt update && sudo apt upgrade"
