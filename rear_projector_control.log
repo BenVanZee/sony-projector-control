@@ -1,0 +1,29 @@
+2025-08-12 20:44:00,688 - INFO - Connected to rear projector 10.10.10.4: PJLINK 1 6d40092c
+2025-08-12 20:44:00,787 - INFO - Freeze status response from rear projector: PJLINK ERRA
+2025-08-12 20:44:00,886 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-08-12 20:44:00,928 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-08-12 20:44:00,929 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-12 20:44:00,929 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-12 20:44:00,948 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-08-12 20:44:00,971 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-08-12 20:44:00,971 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-08-12 20:44:00,971 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-08-13 18:05:26,895 - INFO - Connected to rear projector 10.10.10.4: PJLINK 1 0b6974b3
+2025-08-13 18:05:52,958 - INFO - Connected to rear projector 10.10.10.4: PJLINK 1 745ee7af
+2025-08-13 18:05:53,048 - INFO - Freeze status response from rear projector: PJLINK ERRA
+2025-08-13 18:05:53,168 - INFO - Connected to rear projector 10.10.10.4: PJLINK 1 7aa1a8d9
+2025-08-13 18:05:53,248 - INFO - Freeze status response from rear projector: PJLINK ERRA
+2025-08-13 18:07:35,358 - INFO - Connected to rear projector 10.10.10.4: PJLINK 0
+2025-08-13 18:07:35,559 - INFO - Freeze status response from rear projector: %2FREZ=ERR1
+2025-08-13 18:10:31,660 - INFO - Attempting to freeze rear projector screen using FREZ command
+2025-08-13 18:10:31,684 - INFO - Connected to rear projector 10.10.10.4: PJLINK 0
+2025-08-13 18:10:31,753 - WARNING - Freeze command failed for rear projector: %2FREZ=ERR1
+2025-08-13 18:10:55,325 - INFO - Connected to rear projector 10.10.10.4: PJLINK 0
+2025-08-13 18:11:00,965 - INFO - Connected to rear projector 10.10.10.4: PJLINK 0
+2025-08-13 18:13:22,509 - INFO - Attempting to freeze rear projector screen using FREZ command
+2025-08-13 18:13:22,519 - INFO - Connected to rear projector 10.10.10.4: PJLINK 0
+2025-08-13 18:13:22,569 - WARNING - Freeze command failed for rear projector: %2FREZ=ERR1
+2025-08-13 18:16:56,280 - INFO - Attempting to unfreeze rear projector screen
+2025-08-13 18:16:56,307 - INFO - Connected to rear projector 10.10.10.4: PJLINK 0
+2025-08-13 18:16:56,355 - WARNING - Unfreeze command failed for rear projector: %2FREZ=ERR1
+2025-08-13 20:45:56,656 - INFO - Connected to rear projector 10.10.10.4: PJLINK 0

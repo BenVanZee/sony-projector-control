@@ -2,9 +2,12 @@
 
 A robust Python application for controlling multiple Sony VPL-PHZ61 projectors via PJLink protocol. This system can turn projectors on/off and blank/unblank screens, making it perfect for venues that need to manage multiple projectors simultaneously.
 
+**NEW: Now supports independent control of front and rear projectors!**
+
 ## Features
 
 - **Multi-projector support**: Control 2+ projectors simultaneously
+- **Independent group control**: Control front, rear, or all projectors separately
 - **PJLink protocol**: Industry-standard protocol for reliable communication
 - **Power management**: Turn projectors on/off remotely
 - **Screen blanking**: Mute/unmute video for seamless content switching
@@ -49,14 +52,24 @@ PROJECTORS = [
         'port': 4352,            # PJLink port (usually 4352)
         'name': 'Left',           # Friendly name
         'nickname': 'left',       # Short nickname for CLI
-        'location': 'Main Hall - Left Side'  # Location description
+        'location': 'Main Hall - Left Side',  # Location description
+        'group': 'front'          # Group assignment
     },
     {
         'ip': '10.10.10.3',      # Your second projector IP
         'port': 4352,
         'name': 'Right',          # Friendly name
         'nickname': 'right',      # Short nickname for CLI
-        'location': 'Main Hall - Right Side'
+        'location': 'Main Hall - Right Side',
+        'group': 'front'          # Group assignment
+    },
+    {
+        'ip': '10.10.10.4',      # Your rear projector IP
+        'port': 4352,
+        'name': 'Rear',           # Friendly name
+        'nickname': 'rear',       # Short nickname for CLI
+        'location': 'Main Hall - Rear',
+        'group': 'rear'           # Group assignment
     }
 ]
 
@@ -64,10 +77,17 @@ PROJECTORS = [
 PROJECTOR_ALIASES = {
     'left': '10.10.10.2',
     'right': '10.10.10.3',
+    'rear': '10.10.10.4',
     'l': '10.10.10.2',           # Shorthand
     'r': '10.10.10.3',           # Shorthand
-    'main': '10.10.10.2',        # Alternative names
-    'side': '10.10.10.3'
+    'b': '10.10.10.4'            # Shorthand for back/rear
+}
+
+# Group-based aliases for controlling multiple projectors
+PROJECTOR_GROUPS = {
+    'front': ['left', 'right'],      # Front projectors (left and right)
+    'rear': ['rear'],                # Rear projector only
+    'all': ['left', 'right', 'rear'] # All projectors
 }
 ```
 
@@ -76,6 +96,11 @@ PROJECTOR_ALIASES = {
 - **Location-based**: `left`, `right`, `front`, `rear`
 - **Shorthand**: `l`, `r`, `f`, `b` for quick commands
 - **Flexible**: Add as many aliases as you need
+
+**Group-based control:**
+- **Front projectors**: Control left and right projectors together
+- **Rear projector**: Control rear projector independently
+- **All projectors**: Control all three projectors simultaneously
 
 ## Usage
 
@@ -125,6 +150,8 @@ This provides a menu-driven interface:
 
 For automation and scripting, use the CLI version:
 
+#### Standard CLI (All Projectors)
+
 ```bash
 # Check status of all projectors
 python3 projector_cli.py status
@@ -169,6 +196,58 @@ python3 projector_cli.py mute --action off --projectors right
 
 # Use shorthand nicknames
 python3 projector_cli.py power --action toggle --projectors l r
+```
+
+#### Group-based Control
+
+Control projectors by group (front, rear, or all):
+
+```bash
+# Front projectors only (left + right)
+python3 projector_cli.py power --action on --group front
+python3 projector_cli.py mute --action off --group front
+python3 projector_cli.py freeze --action on --group front
+
+# Rear projector only
+python3 projector_cli.py power --action on --group rear
+python3 projector_cli.py mute --action off --group rear
+python3 projector_cli.py freeze --action on --group rear
+
+# All projectors
+python3 projector_cli.py power --action on --group all
+python3 projector_cli.py mute --action off --group all
+python3 projector_cli.py freeze --action on --group all
+```
+
+#### Rear Projector Only
+
+Control just the rear projector independently:
+
+```bash
+# Check rear projector status
+python3 rear_projector_cli.py status
+
+# Power control
+python3 rear_projector_cli.py power --action on
+python3 rear_projector_cli.py power --action off
+python3 rear_projector_cli.py power --action toggle
+
+# Screen control
+python3 rear_projector_cli.py mute --action on
+python3 rear_projector_cli.py mute --action off
+python3 rear_projector_cli.py freeze --action on
+python3 rear_projector_cli.py freeze --action off
+```
+
+# Control projectors by group
+python3 projector_cli.py power --action on --group front    # Front projectors only
+python3 projector_cli.py power --action on --group rear     # Rear projector only
+python3 projector_cli.py power --action on --group all      # All projectors
+
+# Control rear projector independently
+python3 rear_projector_cli.py power --action on
+python3 rear_projector_cli.py mute --action off
+python3 rear_projector_cli.py freeze --action toggle
 ```
 
 ### Common Use Cases
@@ -260,6 +339,18 @@ telnet 10.10.10.2 4352
 
 # Test with netcat (if available)
 nc -zv 10.10.10.2 4352
+```
+
+### Testing Rear Projector
+
+Test the rear projector connection specifically:
+
+```bash
+# Test rear projector connection and PJLink functionality
+python3 test_rear_connection.py
+
+# Test basic rear projector control
+python3 rear_projector_cli.py status
 ```
 
 ## Raspberry Pi Deployment
@@ -386,16 +477,21 @@ python3 example_usage.py
 projector-control/
 ├── projector_control.py      # Main application
 ├── projector_cli.py          # Command-line interface
+
+├── rear_projector_control.py # Interactive rear projector control
+├── rear_projector_cli.py     # CLI for rear projector only
 ├── macropad_control.py       # 9-button physical button control
 ├── macropad_4button.py      # 4-button essential functions control
 ├── debug_monitor.py          # Advanced debugging
 ├── test_gpio.py             # Hardware testing
 ├── test_connection.py        # Network testing
+├── test_rear_connection.py   # Test rear projector connection
 ├── test_freeze.py           # Freeze functionality testing
 ├── example_usage.py         # Nickname examples
 ├── config.py                # Configuration file
 ├── hardware_setup_guide.md  # Hardware setup guide
 ├── requirements.txt          # Dependencies (none required)
+├── REAR_PROJECTOR_SETUP.md  # Rear projector setup guide
 ├── README.md                # This file
 └── projector_control.log    # Log file (created automatically)
 ```
@@ -433,6 +529,39 @@ For issues or questions:
 2. Review the logs in `projector_control.log`
 3. Test network connectivity to projectors
 4. Verify PJLink is enabled on projectors
+
+## New: Independent Rear Projector Control
+
+The system now supports independent control of your rear projector (10.10.10.4) while maintaining full control of your front projectors. This allows you to:
+
+- **Control front projectors together**: Left and right projectors can be controlled as a group
+- **Control rear projector independently**: Rear projector can be operated separately from front projectors
+- **Control all projectors together**: All three projectors can be controlled simultaneously when needed
+
+### Quick Start for Rear Projector
+
+1. **Test connection:**
+   ```bash
+   python3 test_rear_connection.py
+   ```
+
+2. **Interactive control:**
+   ```bash
+   python3 rear_projector_control.py
+   ```
+
+3. **Command-line control:**
+   ```bash
+   python3 rear_projector_cli.py power --action on
+   python3 rear_projector_cli.py mute --action off
+   ```
+
+4. **Group-based control:**
+   ```bash
+   python3 group_projector_control.py power --action on --group rear
+   python3 group_projector_control.py power --action on --group front
+   python3 group_projector_control.py power --action on --group all
+   ```
 
 ---
 

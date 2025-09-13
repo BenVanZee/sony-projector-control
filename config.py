@@ -9,14 +9,24 @@ PROJECTORS = [
         'port': 4352,  # Standard PJLink port
         'name': 'Left',
         'nickname': 'left',
-        'location': 'Main Hall - Left Side'
+        'location': 'Main Hall - Left Side',
+        'group': 'front'
     },
     {
         'ip': '10.10.10.3', 
         'port': 4352,
         'name': 'Right',
         'nickname': 'right',
-        'location': 'Main Hall - Right Side'
+        'location': 'Main Hall - Right Side',
+        'group': 'front'
+    },
+    {
+        'ip': '10.10.10.4',
+        'port': 4352,
+        'name': 'Rear',
+        'nickname': 'rear',
+        'location': 'Main Hall - Rear',
+        'group': 'rear'
     }
 ]
 
@@ -24,8 +34,17 @@ PROJECTORS = [
 PROJECTOR_ALIASES = {
     'left': '10.10.10.2',
     'right': '10.10.10.3',
+    'rear': '10.10.10.4',
     'l': '10.10.10.2',
-    'r': '10.10.10.3'
+    'r': '10.10.10.3',
+    'b': '10.10.10.4'  # 'b' for back/rear
+}
+
+# Group-based aliases for controlling multiple projectors
+PROJECTOR_GROUPS = {
+    'front': ['left', 'right'],      # Front projectors (left and right)
+    'rear': ['rear'],                # Rear projector only
+    'all': ['left', 'right', 'rear'] # All projectors
 }
 
 # Network settings

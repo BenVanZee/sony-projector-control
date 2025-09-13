@@ -8,6 +8,29 @@ import sys
 import argparse
 from projector_control import ProjectorManager
 
+def get_projectors_by_group(group_name, aliases):
+    """Get projector IPs for a specific group"""
+    try:
+        from config import PROJECTOR_GROUPS
+        if group_name not in PROJECTOR_GROUPS:
+            print(f"Error: Unknown group '{group_name}'. Available groups: {list(PROJECTOR_GROUPS.keys())}")
+            return None
+        
+        group_nicknames = PROJECTOR_GROUPS[group_name]
+        projectors = []
+        
+        for nickname in group_nicknames:
+            if nickname in aliases:
+                ip = aliases[nickname]
+                projectors.append(ip)
+            else:
+                print(f"Warning: Unknown nickname '{nickname}' in group '{group_name}'")
+        
+        return projectors
+    except ImportError:
+        print(f"Error: Group '{group_name}' not available in current configuration")
+        return None
+
 def main():
     parser = argparse.ArgumentParser(description='Control Sony VPL-PHZ61 projectors')
     parser.add_argument('command', choices=['status', 'power', 'mute', 'free', 'freeze'], 
@@ -15,8 +38,9 @@ def main():
     parser.add_argument('--action', choices=['on', 'off', 'toggle'], 
                        help='Action for power/mute commands')
     parser.add_argument('--projectors', nargs='+', 
-                       default=['left', 'right'],
-                       help='Projector nicknames or IPs (default: left right)')
+                       help='Projector nicknames or IPs (e.g., left right rear)')
+    parser.add_argument('--group', choices=['front', 'rear', 'all'],
+                       help='Projector group to control (front, rear, or all)')
     parser.add_argument('--port', type=int, default=4352,
                        help='PJLink port (default: 4352)')
     
@@ -34,13 +58,30 @@ def main():
             'r': '10.10.10.3'
         }
     
-    # Convert nicknames to IPs
-    projector_ips = []
-    for projector in args.projectors:
-        if projector in aliases:
-            projector_ips.append(aliases[projector])
-        else:
-            projector_ips.append(projector)  # Assume it's already an IP
+    # Determine which projectors to control
+    if args.group:
+        # Use group-based selection
+        if args.projectors:
+            print("Warning: Both --group and --projectors specified. Using --group.")
+        
+        projector_ips = get_projectors_by_group(args.group, aliases)
+        if not projector_ips:
+            sys.exit(1)
+        
+        print(f"Controlling {args.group} projectors: {projector_ips}")
+        
+    elif args.projectors:
+        # Use specific projector selection
+        projector_ips = []
+        for projector in args.projectors:
+            if projector in aliases:
+                projector_ips.append(aliases[projector])
+            else:
+                projector_ips.append(projector)  # Assume it's already an IP
+    else:
+        # Default to front projectors (left + right) for backward compatibility
+        projector_ips = ['10.10.10.2', '10.10.10.3']
+        print("No projectors specified, using default: left right")
     
     # Create projector list
     projectors = [(ip, args.port) for ip in projector_ips]
@@ -120,7 +161,7 @@ def main():
                 # Get current status and toggle
                 status = manager.get_all_status()
                 for ip, info in status.items():
-                    if info.get('mute') == 'FROZEN':
+                    if info.get('freeze') == 'FROZEN':
                         manager.freeze_all_screens(False)
                         print("Unfroze all screens")
                     else:
