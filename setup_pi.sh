@@ -26,7 +26,7 @@ fi
 # Create project directory
 echo "📁 Creating project directory..."
 sudo mkdir -p /opt/projector-control
-sudo chown pi:pi /opt/projector-control
+sudo chown $(whoami):$(whoami) /opt/projector-control
 cd /opt/projector-control
 
 # Update system
@@ -58,7 +58,7 @@ pip install --upgrade pip
 
 # Set up GPIO permissions
 echo "🔧 Setting up GPIO permissions..."
-sudo usermod -a -G gpio pi
+sudo usermod -a -G gpio $(whoami)
 
 # Create basic config if it doesn't exist
 if [ ! -f config.py ]; then
@@ -108,14 +108,15 @@ fi
 
 # Create systemd service
 echo "🔧 Creating systemd service..."
-sudo tee /etc/systemd/system/projector-control.service > /dev/null << 'EOF'
+CURRENT_USER=$(whoami)
+sudo tee /etc/systemd/system/projector-control.service > /dev/null << EOF
 [Unit]
 Description=Sony Projector Control System
 After=network.target
 
 [Service]
 Type=simple
-User=pi
+User=$CURRENT_USER
 WorkingDirectory=/opt/projector-control
 Environment=PATH=/opt/projector-control/venv/bin
 ExecStart=/opt/projector-control/venv/bin/python3 macropad_control.py
@@ -273,4 +274,4 @@ echo ""
 echo "For more help, see PI_SETUP_GUIDE.md"
 echo ""
 echo "🔧 To copy files from your computer, use:"
-echo "   scp -r /path/to/sony-projector-control/* pi@your-pi-ip:/opt/projector-control/"
+echo "   scp -r /path/to/sony-projector-control/* $(whoami)@your-pi-ip:/opt/projector-control/"
