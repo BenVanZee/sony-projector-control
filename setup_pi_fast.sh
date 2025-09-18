@@ -45,6 +45,7 @@ sudo apt install -y \
     python3-rpi.gpio \
     python3-hidapi \
     python3-pynput \
+    python3-evdev \
     git \
     curl \
     wget \
@@ -57,6 +58,10 @@ echo "🐍 Setting up Python environment..."
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
+
+# Install Python packages in virtual environment
+echo "📦 Installing Python packages in virtual environment..."
+pip install pynput evdev
 
 # Set up GPIO permissions
 echo "🔧 Setting up GPIO permissions..."
@@ -108,12 +113,12 @@ LOG_FILE = 'projector_control.log'
 EOF
 fi
 
-# Create systemd service
+# Create systemd service for USB keypad control
 echo "🔧 Creating systemd service..."
 CURRENT_USER=$(whoami)
-sudo tee /etc/systemd/system/projector-control.service > /dev/null << EOF
+sudo tee /etc/systemd/system/usb-keypad-control.service > /dev/null << EOF
 [Unit]
-Description=Sony Projector Control System
+Description=Sony Projector USB Keypad Control System
 After=network.target
 
 [Service]
@@ -121,7 +126,7 @@ Type=simple
 User=$CURRENT_USER
 WorkingDirectory=/opt/projector-control
 Environment=PATH=/opt/projector-control/venv/bin
-ExecStart=/opt/projector-control/venv/bin/python3 macropad_control.py
+ExecStart=/opt/projector-control/venv/bin/python3 usb_keypad_control_headless.py
 Restart=always
 RestartSec=10
 
@@ -270,11 +275,11 @@ echo "4. Test basic connectivity:"
 echo "   python3 test_connection.py"
 echo ""
 echo "5. Enable auto-start service:"
-echo "   sudo systemctl enable projector-control.service"
-echo "   sudo systemctl start projector-control.service"
+echo "   sudo systemctl enable usb-keypad-control.service"
+echo "   sudo systemctl start usb-keypad-control.service"
 echo ""
 echo "6. Check service status:"
-echo "   sudo systemctl status projector-control.service"
+echo "   sudo systemctl status usb-keypad-control.service"
 echo ""
 echo "For more help, see PI_SETUP_GUIDE.md"
 echo ""
