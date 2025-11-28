@@ -1,0 +1,163 @@
+2025-09-17 20:10:53,995 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:10:54,038 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:10:54,038 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:10:54,038 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:10:54,057 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:10:54,080 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:10:54,080 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:10:54,080 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:10:54,097 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:10:54,097 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-09-17 20:10:54,108 - WARNING - Freeze command failed for 10.10.10.2: %2FREZ=ERR3
+2025-09-17 20:10:54,108 - INFO - 10.10.10.2: Freeze screen failed
+2025-09-17 20:10:54,122 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:10:54,122 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-09-17 20:10:54,126 - WARNING - Freeze command failed for 10.10.10.3: %2FREZ=ERR3
+2025-09-17 20:10:54,126 - INFO - 10.10.10.3: Freeze screen failed
+2025-09-17 20:10:54,139 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:10:54,177 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:10:54,177 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:10:54,177 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:10:54,196 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:10:54,219 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:10:54,219 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:10:54,219 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:10:54,242 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:10:54,242 - INFO - Attempting to unfreeze screen for 10.10.10.2
+2025-09-17 20:10:54,253 - WARNING - Unfreeze command failed for 10.10.10.2: %2FREZ=ERR3
+2025-09-17 20:10:54,253 - INFO - 10.10.10.2: Unfreeze screen failed
+2025-09-17 20:10:54,260 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:10:54,260 - INFO - Attempting to unfreeze screen for 10.10.10.3
+2025-09-17 20:10:54,264 - WARNING - Unfreeze command failed for 10.10.10.3: %2FREZ=ERR3
+2025-09-17 20:10:54,264 - INFO - 10.10.10.3: Unfreeze screen failed
+2025-09-17 20:10:54,277 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:10:54,310 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:10:54,311 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:10:54,311 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:10:54,336 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:10:54,357 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:10:54,357 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:10:54,357 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:10:58,065 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:10:58,076 - INFO - 10.10.10.2: Power ON successful
+2025-09-17 20:10:58,095 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:10:58,099 - INFO - 10.10.10.3: Power ON successful
+2025-09-17 20:11:00,948 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:11:01,005 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:11:01,009 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:11:01,010 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:11:01,027 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:11:01,150 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:11:01,151 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:11:01,151 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:11:01,216 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:11:01,217 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-09-17 20:11:01,231 - WARNING - Freeze command failed for 10.10.10.2: %2FREZ=ERR3
+2025-09-17 20:11:01,232 - INFO - 10.10.10.2: Freeze screen failed
+2025-09-17 20:11:01,264 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:11:01,265 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-09-17 20:11:01,319 - WARNING - Freeze command failed for 10.10.10.3: %2FREZ=ERR3
+2025-09-17 20:11:01,320 - INFO - 10.10.10.3: Freeze screen failed
+2025-09-17 20:11:01,329 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:11:01,361 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:11:01,362 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:11:01,362 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:11:01,419 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:11:11,419 - ERROR - Command failed on 10.10.10.3: timed out
+2025-09-17 20:11:11,471 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:11:11,531 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:11:11,531 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:11:11,532 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:11:11,581 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:11:11,581 - INFO - Attempting to unfreeze screen for 10.10.10.2
+2025-09-17 20:11:11,675 - WARNING - Unfreeze command failed for 10.10.10.2: %2FREZ=ERR3
+2025-09-17 20:11:11,676 - INFO - 10.10.10.2: Unfreeze screen failed
+2025-09-17 20:11:11,718 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:11:11,718 - INFO - Attempting to unfreeze screen for 10.10.10.3
+2025-09-17 20:11:11,789 - WARNING - Unfreeze command failed for 10.10.10.3: %2FREZ=ERR3
+2025-09-17 20:11:11,790 - INFO - 10.10.10.3: Unfreeze screen failed
+2025-09-17 20:11:11,863 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:11:11,955 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:11:11,956 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:11:11,956 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:11:12,202 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:11:22,218 - ERROR - Command failed on 10.10.10.3: timed out
+2025-09-17 20:11:22,297 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:11:22,418 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:11:22,419 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:11:22,419 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:11:32,420 - ERROR - Command failed on 10.10.10.3: timed out
+2025-09-17 20:11:32,661 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:12:52,210 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:12:52,293 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:12:57,473 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:12:57,506 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:12:57,507 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:12:57,507 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:12:57,529 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:12:57,551 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:12:57,551 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:12:57,551 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:12:57,596 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:12:57,596 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-09-17 20:12:57,623 - INFO - Freeze command successful for 10.10.10.2
+2025-09-17 20:12:57,624 - INFO - 10.10.10.2: Freeze screen successful
+2025-09-17 20:12:57,637 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:12:57,637 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-09-17 20:12:57,642 - INFO - Freeze command successful for 10.10.10.3
+2025-09-17 20:12:57,642 - INFO - 10.10.10.3: Freeze screen successful
+2025-09-17 20:12:57,657 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:12:57,690 - INFO - Freeze status response from 10.10.10.2: %2FREZ=1
+2025-09-17 20:12:57,690 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:12:57,690 - INFO - Matched freeze status: %2FREZ=1 -> FROZEN
+2025-09-17 20:12:57,708 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:12:57,731 - INFO - Freeze status response from 10.10.10.3: %2FREZ=1
+2025-09-17 20:12:57,731 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:12:57,731 - INFO - Matched freeze status: %2FREZ=1 -> FROZEN
+2025-09-17 20:12:57,753 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:12:57,753 - INFO - Attempting to unfreeze screen for 10.10.10.2
+2025-09-17 20:12:57,776 - INFO - Unfreeze command successful for 10.10.10.2
+2025-09-17 20:12:57,777 - INFO - 10.10.10.2: Unfreeze screen successful
+2025-09-17 20:12:57,794 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:12:57,794 - INFO - Attempting to unfreeze screen for 10.10.10.3
+2025-09-17 20:12:57,809 - INFO - Unfreeze command successful for 10.10.10.3
+2025-09-17 20:12:57,811 - INFO - 10.10.10.3: Unfreeze screen successful
+2025-09-17 20:12:57,822 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:12:57,888 - INFO - Freeze status response from 10.10.10.2: %2FREZ=0
+2025-09-17 20:12:57,888 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:12:57,888 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:12:57,910 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:12:57,963 - INFO - Freeze status response from 10.10.10.3: %2FREZ=0
+2025-09-17 20:12:57,964 - INFO - Available freeze status patterns: {'%2FREZ=0': 'NORMAL', '%2FREZ=1': 'FROZEN'}
+2025-09-17 20:12:57,964 - INFO - Matched freeze status: %2FREZ=0 -> NORMAL
+2025-09-17 20:13:10,776 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:13:10,776 - INFO - Attempting to freeze screen for 10.10.10.2 using FREZ command
+2025-09-17 20:13:10,792 - INFO - Freeze command successful for 10.10.10.2
+2025-09-17 20:13:10,792 - INFO - 10.10.10.2: Freeze screen successful
+2025-09-17 20:13:10,806 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:13:10,806 - INFO - Attempting to freeze screen for 10.10.10.3 using FREZ command
+2025-09-17 20:13:10,822 - INFO - Freeze command successful for 10.10.10.3
+2025-09-17 20:13:10,822 - INFO - 10.10.10.3: Freeze screen successful
+2025-09-17 20:13:10,830 - INFO - Connected to 10.10.10.2: PJLINK 0
+2025-09-17 20:13:10,830 - INFO - Attempting to unfreeze screen for 10.10.10.2
+2025-09-17 20:13:10,842 - INFO - Unfreeze command successful for 10.10.10.2
+2025-09-17 20:13:10,842 - INFO - 10.10.10.2: Unfreeze screen successful
+2025-09-17 20:13:10,856 - INFO - Connected to 10.10.10.3: PJLINK 0
+2025-09-17 20:13:10,856 - INFO - Attempting to unfreeze screen for 10.10.10.3
+2025-09-17 20:13:10,872 - INFO - Unfreeze command successful for 10.10.10.3
+2025-09-17 20:13:10,872 - INFO - 10.10.10.3: Unfreeze screen successful
+2025-11-28 13:46:31,923 - ERROR - Failed to connect to 10.10.10.2: timed out
+2025-11-28 14:33:59,825 - WARNING - This process is not trusted! Input event monitoring will not be possible until it is added to accessibility clients.
+2025-11-28 14:35:54,693 - ERROR - Failed to connect to 10.10.10.2: timed out
+2025-11-28 14:36:04,694 - ERROR - Command failed on 10.10.10.2: timed out
+2025-11-28 14:36:14,697 - ERROR - Failed to connect to 10.10.10.2: timed out
+2025-11-28 14:36:24,700 - ERROR - Failed to connect to 10.10.10.3: timed out
+2025-11-28 14:36:34,702 - ERROR - Command failed on 10.10.10.3: timed out
+2025-11-28 14:36:44,707 - ERROR - Failed to connect to 10.10.10.3: timed out
+2025-11-28 14:36:54,713 - ERROR - Failed to connect to 10.10.10.2: timed out
+2025-11-28 14:37:04,715 - ERROR - Command failed on 10.10.10.2: timed out
+2025-11-28 14:38:09,750 - ERROR - Failed to connect to 10.10.10.2: timed out
+2025-11-28 14:38:19,752 - ERROR - Command failed on 10.10.10.2: timed out
+2025-11-28 14:38:29,759 - ERROR - Failed to connect to 10.10.10.2: timed out
+2025-11-28 14:38:29,761 - INFO - 10.10.10.2: Power ON failed
+2025-11-28 14:38:39,763 - ERROR - Failed to connect to 10.10.10.3: timed out

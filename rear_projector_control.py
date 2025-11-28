@@ -7,15 +7,19 @@ Controls the rear projector (10.10.10.4) independently from front projectors
 import socket
 import time
 import threading
+import os
 from typing import Optional
 import logging
+
+# Ensure logs directory exists
+os.makedirs('logs', exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('rear_projector_control.log'),
+        logging.FileHandler('logs/rear_projector_control.log'),
         logging.StreamHandler()
     ]
 )

@@ -54,7 +54,7 @@ MAX_RETRIES = 3
 
 # Logging configuration
 LOG_LEVEL = 'INFO'
-LOG_FILE = 'projector_control.log'
+LOG_FILE = 'logs/projector_control.log'
 LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 
 # PJLink commands

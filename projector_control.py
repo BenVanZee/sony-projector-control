@@ -7,15 +7,19 @@ Controls multiple projectors via PJLink protocol
 import socket
 import time
 import threading
+import os
 from typing import Dict, List, Optional, Tuple
 import logging
+
+# Ensure logs directory exists
+os.makedirs('logs', exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('projector_control.log'),
+        logging.FileHandler('logs/projector_control.log'),
         logging.StreamHandler()
     ]
 )
