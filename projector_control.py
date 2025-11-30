@@ -14,15 +14,7 @@ import logging
 # Ensure logs directory exists
 os.makedirs('logs', exist_ok=True)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/projector_control.log'),
-        logging.StreamHandler()
-    ]
-)
+# Module-level logger (safe to create at import time)
 logger = logging.getLogger(__name__)
 
 class ProjectorController:
@@ -335,6 +327,16 @@ class ProjectorManager:
 
 def main():
     """Main application loop"""
+    # Configure logging only when run as script
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('logs/projector_control.log'),
+            logging.StreamHandler()
+        ]
+    )
+    
     # Import config
     try:
         from config import PROJECTORS, PROJECTOR_ALIASES

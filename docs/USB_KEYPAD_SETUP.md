@@ -282,3 +282,5 @@ device_path = "/dev/input/event0"  # Replace with your device path
 5. **Set up auto-start** (if using Raspberry Pi)
 6. **Deploy to your projector control system**
 
+
+

@@ -373,11 +373,43 @@ class HIDMacropadController:
             print("   - Make sure your macropad is connected via USB")
             print("   - Check if your macropad appears in: lsusb")
             print("   - You may need to add your macropad's VID/PID to the script")
+            print("   - If your device acts as a keyboard, try using:")
+            print("     python run_macropad_with_mocks.py usb-keypad")
+            print("     (uses keyboard listener instead of raw HID)")
             return
         
+        # Check if device might be a keyboard (common issue)
+        try:
+            device_info = self.device.get_manufacturer_string() + " " + self.device.get_product_string()
+            if "keyboard" in device_info.lower() or "trackpad" in device_info.lower():
+                print(f"\n⚠️  Warning: Device appears to be a keyboard/trackpad: {device_info}")
+                print("   This may cause terminal input issues.")
+                print("   Consider using the keyboard listener approach instead:")
+                print("   python run_macropad_with_mocks.py usb-keypad")
+        except:
+            pass
+        
         self.running = True
+        terminal_modified = False
+        old_settings = None
         
         try:
+            # Suppress terminal echo if possible (helps with keyboard-like devices)
+            # Note: This may not work on all systems, especially macOS
+            try:
+                import sys
+                import termios
+                import tty
+                # Save terminal settings
+                old_settings = termios.tcgetattr(sys.stdin)
+                # Set terminal to raw mode (suppresses echo)
+                tty.setraw(sys.stdin.fileno())
+                terminal_modified = True
+            except (ImportError, AttributeError, OSError):
+                # termios not available (Windows) or can't modify terminal
+                terminal_modified = False
+                old_settings = None
+            
             # Main event loop
             while self.running:
                 self.read_hid_events()
@@ -390,6 +422,12 @@ class HIDMacropadController:
             print(f"❌ Error: {e}")
             self.logger.error(f"Runtime error: {e}")
         finally:
+            # Restore terminal settings
+            if terminal_modified and old_settings:
+                try:
+                    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                except:
+                    pass
             self.cleanup()
     
     def cleanup(self):
