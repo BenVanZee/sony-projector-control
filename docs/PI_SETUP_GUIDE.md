@@ -7,7 +7,7 @@ Complete setup guide for installing the projector control system on your Raspber
 ### 1. Download and Run Setup Script
 ```bash
 # Download the setup script
-wget https://raw.githubusercontent.com/sony-projector-control/main/scripts/setup_pi.sh
+wget https://raw.githubusercontent.com/BenVanZee/sony-projector-control/main/scripts/setup_pi.sh
 chmod +x setup_pi.sh
 sudo ./setup_pi.sh
 ```
