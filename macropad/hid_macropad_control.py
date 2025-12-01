@@ -2,29 +2,21 @@
 """
 HID Macropad Control for Sony Projector System
 Supports 6-9 button HID macropads for controlling projectors
+
+Uses direct /dev/hidraw access instead of the hid library for better compatibility.
 """
 
 import time
 import sys
 import os
+import glob
+import select
 import logging
 from typing import Dict, Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from projector_control import ProjectorManager
-
-# Try to import USB HID support
-HID_AVAILABLE = False
-HID_IMPORT_ERROR = None
-
-try:
-    import hid
-    HID_AVAILABLE = True
-except ImportError as e:
-    HID_AVAILABLE = False
-    HID_IMPORT_ERROR = str(e)
-    # Don't print here - let the run() method provide better diagnostics
 
 class HIDMacropadController:
     """HID Macropad controller for projector control"""
@@ -39,14 +31,25 @@ class HIDMacropadController:
         self.running = False
         self.device = None
         
-        # Button mappings (6 functions for 6-9 button macropad)
+        # Button mappings for 12-button Adafruit Macropad
+        # Row 1: Power controls
+        # Row 2: Blank controls  
+        # Row 3: Freeze controls
+        # Row 4: Reserved (customize as needed)
         self.button_functions = {
             1: ("All On", self.power_on_all),
             2: ("All Off", self.power_off_all),
-            3: ("Blank Front", self.blank_front),
-            4: ("Unblank Front", self.unblank_front),
-            5: ("Freeze Front", self.freeze_front),
-            6: ("Unfreeze Front", self.unfreeze_front),
+            3: ("Toggle Power", self.toggle_power),
+            4: ("Blank Front", self.blank_front),
+            5: ("Unblank Front", self.unblank_front),
+            6: ("Toggle Blank", self.toggle_blank),
+            7: ("Freeze Front", self.freeze_front),
+            8: ("Unfreeze Front", self.unfreeze_front),
+            9: ("Toggle Freeze", self.toggle_freeze),
+            # Bottom row - customize as needed
+            10: ("Reserved 10", self.reserved_button),
+            11: ("Reserved 11", self.reserved_button),
+            12: ("Reserved 12", self.reserved_button),
         }
         
         # Setup logging
@@ -221,71 +224,139 @@ class HIDMacropadController:
             print(f"❌ Error unfreezing front projectors: {e}")
             self.logger.error(f"Unfreeze front error: {e}")
     
-    def find_hid_macropad(self):
-        """Find connected HID macropad device"""
-        if not HID_AVAILABLE:
-            return None
-        
+    def toggle_power(self):
+        """Toggle power on all projectors"""
+        print("🔌 Toggling power...")
         try:
-            # List of common HID macropad vendor/product IDs
-            # Add your macropad's VID/PID here
-            macropad_ids = [
-                # Elgato Stream Deck
-                (0x0FD9, 0x0060),  # Stream Deck
-                (0x0FD9, 0x0063),  # Stream Deck Mini
-                (0x0FD9, 0x006C),  # Stream Deck XL
-                
-                # Generic HID macropads
-                (0x0C45, 0x8601),  # Generic macropad
-                (0x0483, 0x5750),  # Common HID device
-                
-                # Corsair
-                (0x1B1C, 0x0A1F),  # Corsair K95
-                
-                # Razer
-                (0x1532, 0x0205),  # Razer Tartarus
-                
-                # Adafruit Macropad
-                (0x239A, 0x8027),  # Adafruit Macropad RP2040 (firmware mode)
-                (0x239A, 0x8107),  # Adafruit Macropad RP2040 (alternative PID)
-                (0x239A, 0x8108),  # Adafruit Macropad RP2040 (HID mode)
-            ]
-            
-            # Try to find any matching device
-            for vendor_id, product_id in macropad_ids:
-                try:
-                    device = hid.device()
-                    device.open(vendor_id, product_id)
-                    device_info = device.get_manufacturer_string() + " " + device.get_product_string()
-                    print(f"✅ Found HID macropad: {device_info} ({vendor_id:04x}:{product_id:04x})")
-                    return device
-                except:
-                    continue
-            
-            # If no known device found, try to enumerate all HID devices
-            print("🔍 Searching for HID devices...")
-            for device_info in hid.enumerate():
-                vid = device_info['vendor_id']
-                pid = device_info['product_id']
-                name = device_info.get('product_string', 'Unknown')
-                print(f"   Found HID device: {name} ({vid:04x}:{pid:04x})")
-                
-                # Try to open it
-                try:
-                    device = hid.device()
-                    device.open(vid, pid)
-                    print(f"✅ Opened HID device: {name}")
-                    return device
-                except:
-                    continue
-            
-            print("❌ No HID macropad found")
-            return None
-            
+            status = self.manager.get_all_status()
+            # Check if any projector is on
+            any_on = any(s.get('power') == 'ON' for s in status.values())
+            if any_on:
+                self.power_off_all()
+            else:
+                self.power_on_all()
         except Exception as e:
-            print(f"❌ Error finding HID macropad: {e}")
-            self.logger.error(f"HID device search error: {e}")
-            return None
+            print(f"❌ Error toggling power: {e}")
+            self.logger.error(f"Toggle power error: {e}")
+    
+    def toggle_blank(self):
+        """Toggle blank on front projectors"""
+        print("🎬 Toggling blank...")
+        try:
+            front_ips = self.get_front_projectors()
+            # Check current state of first front projector
+            for ip in front_ips:
+                if ip in self.manager.controllers:
+                    try:
+                        controller = self.manager.controllers[ip]
+                        with controller:
+                            status = controller.get_status()
+                            if status.get('mute') == 'MUTED':
+                                self.unblank_front()
+                            else:
+                                self.blank_front()
+                            return
+                    except Exception as e:
+                        self.logger.error(f"Error checking {ip}: {e}")
+            # Default to blank if can't determine state
+            self.blank_front()
+        except Exception as e:
+            print(f"❌ Error toggling blank: {e}")
+            self.logger.error(f"Toggle blank error: {e}")
+    
+    def toggle_freeze(self):
+        """Toggle freeze on front projectors"""
+        print("⏸️  Toggling freeze...")
+        try:
+            front_ips = self.get_front_projectors()
+            # Check current state of first front projector
+            for ip in front_ips:
+                if ip in self.manager.controllers:
+                    try:
+                        controller = self.manager.controllers[ip]
+                        with controller:
+                            status = controller.get_status()
+                            if status.get('freeze') == 'FROZEN':
+                                self.unfreeze_front()
+                            else:
+                                self.freeze_front()
+                            return
+                    except Exception as e:
+                        self.logger.error(f"Error checking {ip}: {e}")
+            # Default to freeze if can't determine state
+            self.freeze_front()
+        except Exception as e:
+            print(f"❌ Error toggling freeze: {e}")
+            self.logger.error(f"Toggle freeze error: {e}")
+    
+    def reserved_button(self):
+        """Placeholder for unassigned buttons"""
+        print("⚠️  This button is not assigned. Edit button_functions in hid_macropad_control.py to assign it.")
+    
+    def find_hid_macropad(self):
+        """Find connected HID macropad device using direct /dev/hidraw access"""
+        
+        print("🔍 Searching for Adafruit Macropad in /dev/hidraw*...")
+        
+        # Look for Adafruit Macropad by checking device info
+        for hidraw_path in sorted(glob.glob("/dev/hidraw*")):
+            try:
+                basename = os.path.basename(hidraw_path)
+                uevent_path = f"/sys/class/hidraw/{basename}/device/uevent"
+                
+                device_name = ""
+                product_info = ""
+                
+                if os.path.exists(uevent_path):
+                    with open(uevent_path) as f:
+                        for line in f:
+                            if line.startswith("HID_NAME="):
+                                device_name = line.split("=", 1)[1].strip()
+                            if line.startswith("PRODUCT="):
+                                product_info = line.split("=", 1)[1].strip()
+                
+                # Check if this is the Adafruit Macropad
+                is_adafruit = "adafruit" in device_name.lower() or "macropad" in device_name.lower()
+                # Also check product ID (239a = Adafruit vendor ID)
+                is_adafruit = is_adafruit or "239a" in product_info.lower()
+                
+                if self.debug_mode:
+                    print(f"   {hidraw_path}: {device_name} ({product_info})")
+                
+                if is_adafruit:
+                    # Try to open it
+                    try:
+                        fd = os.open(hidraw_path, os.O_RDONLY | os.O_NONBLOCK)
+                        print(f"✅ Found Adafruit Macropad: {hidraw_path}")
+                        print(f"   Device: {device_name}")
+                        return fd
+                    except PermissionError:
+                        print(f"❌ Permission denied for {hidraw_path}")
+                        print("   Run: sudo chmod 666 " + hidraw_path)
+                        continue
+                    except Exception as e:
+                        print(f"❌ Failed to open {hidraw_path}: {e}")
+                        continue
+                        
+            except Exception as e:
+                if self.debug_mode:
+                    print(f"   Error checking {hidraw_path}: {e}")
+                continue
+        
+        # If no Adafruit device found, try to open any hidraw device
+        print("\n⚠️  No Adafruit Macropad found by name, trying all hidraw devices...")
+        for hidraw_path in sorted(glob.glob("/dev/hidraw*")):
+            try:
+                fd = os.open(hidraw_path, os.O_RDONLY | os.O_NONBLOCK)
+                print(f"✅ Opened {hidraw_path} (may not be macropad)")
+                return fd
+            except Exception as e:
+                if self.debug_mode:
+                    print(f"   {hidraw_path}: {e}")
+                continue
+        
+        print("❌ No HID macropad found")
+        return None
     
     def handle_button_press(self, button_num: int):
         """Handle button press event"""
@@ -303,103 +374,46 @@ class HIDMacropadController:
                 print(f"⚠️  Unknown button: {button_num}")
     
     def read_hid_events(self):
-        """Read button events from HID device"""
-        if not self.device:
+        """Read button events from HID device using direct /dev/hidraw access"""
+        if self.device is None:
             return
         
         try:
-            # Read data from HID device with timeout to avoid blocking
-            # Use non-blocking read to prevent interfering with other HID devices
-            # Short timeout prevents blocking other HID devices like trackpad
-            try:
-                data = self.device.read(64, timeout_ms=100)  # 100ms timeout, non-blocking
-            except Exception as read_error:
-                # Handle timeout or read errors gracefully
-                if "timeout" not in str(read_error).lower():
-                    if self.debug_mode:
-                        print(f"⚠️  HID read error: {read_error}")
-                return  # Exit early on error, don't block
+            # Use select to check if data is available (non-blocking)
+            readable, _, _ = select.select([self.device], [], [], 0.1)
             
-            if data:
-                # Parse button presses (implementation depends on macropad)
-                # Common format: first byte is button number, or bitmask
-                if len(data) > 0:
-                    # Try different parsing methods
+            if readable:
+                # Read data from hidraw device
+                data = os.read(self.device, 64)
+                
+                if data and len(data) > 0:
                     button_pressed = None
                     
-                    # Method 1: First byte is button number (1-9)
-                    if data[0] > 0 and data[0] <= 9:
+                    # Primary method: First byte is button number (1-12)
+                    # This matches our macropad code.py format
+                    if data[0] > 0 and data[0] <= 12:
                         button_pressed = data[0]
                     
-                    # Method 2: Bitmask in first byte
-                    elif data[0] > 0:
-                        # Find which bit is set
-                        for i in range(8):
-                            if data[0] & (1 << i):
-                                button_pressed = i + 1
-                                break
-                    
-                    # Method 3: Second byte might be button number
-                    if not button_pressed and len(data) > 1 and data[1] > 0 and data[1] <= 9:
+                    # Fallback: Second byte might be button number
+                    elif len(data) > 1 and data[1] > 0 and data[1] <= 12:
                         button_pressed = data[1]
                     
                     if button_pressed:
                         self.handle_button_press(button_pressed)
-                    elif self.debug_mode:
+                    elif self.debug_mode and data[0] != 0:
+                        # Only print if not all zeros (which is idle state)
                         print(f"🔍 Raw HID data: {data.hex()}")
                         
+        except BlockingIOError:
+            # No data available, this is normal for non-blocking read
+            pass
         except Exception as e:
             if self.debug_mode:
                 print(f"⚠️  HID read error: {e}")
             self.logger.debug(f"HID read error: {e}")
     
     def run(self):
-        """Start the HID macropad listener"""
-        if not HID_AVAILABLE:
-            print("❌ Cannot start - USB HID not available")
-            print()
-            print("📋 Diagnostic Information:")
-            import sys
-            in_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
-            print(f"   Python version: {sys.version.split()[0]}")
-            print(f"   Python executable: {sys.executable}")
-            print(f"   Virtual environment: {'Yes' if in_venv else 'No'}")
-            if in_venv:
-                print(f"   Venv path: {sys.prefix}")
-            if HID_IMPORT_ERROR:
-                print(f"   Import error: {HID_IMPORT_ERROR}")
-            print()
-            print("🔧 Installation Options:")
-            print()
-            if in_venv:
-                print("   ⚠️  You're using a virtual environment!")
-                print("   Apt packages (python3-hidapi) are NOT available in venv.")
-                print()
-                print("   ✅ RECOMMENDED: Install via pip in your venv:")
-                print("     pip install hidapi")
-                print()
-                print("   Or install system-wide and use system Python:")
-                print("     deactivate  # exit venv")
-                print("     sudo apt install -y python3-hidapi")
-                print("     python3 run_macropad_with_mocks.py hid-macropad")
-            else:
-                print("   Option 1: Install via apt (system-wide):")
-                print("     sudo apt update")
-                print("     sudo apt install -y python3-hidapi")
-                print()
-                print("   Option 2: If apt package doesn't work, try pip:")
-                print("     pip3 install hidapi")
-                print("     # Note: May require: sudo apt install libhidapi-hidraw0")
-            print()
-            print("   Verify installation with:")
-            print("     python3 -c 'import hid; print(\"✅ Success! hid module works\")'")
-            print()
-            print("   If still not working, check:")
-            print("     - Are you using 'python3' not 'python'?")
-            print("     - Try: which python3")
-            print("     - Try: python3 --version")
-            print()
-            return
+        """Start the HID macropad listener using direct /dev/hidraw access"""
         
         print("🎬 HID Macropad Control Started")
         print(f"   Projectors: {len(self.projectors)}")
@@ -412,53 +426,23 @@ class HIDMacropadController:
         
         # Find HID macropad
         self.device = self.find_hid_macropad()
-        if not self.device:
+        if self.device is None:
             print("❌ No HID macropad found. Please connect your macropad and try again.")
             print("\n💡 Tips:")
             print("   - Make sure your macropad is connected via USB")
             print("   - Check if your macropad appears in: lsusb")
-            print("   - You may need to add your macropad's VID/PID to the script")
-            print("   - If your device acts as a keyboard, try using:")
-            print("     python run_macropad_with_mocks.py usb-keypad")
-            print("     (uses keyboard listener instead of raw HID)")
+            print("   - Check permissions: ls -la /dev/hidraw*")
+            print("   - If permission denied, run:")
+            print("     sudo chmod 666 /dev/hidraw0")
             return
         
-        # Check if device might be a keyboard (common issue)
-        try:
-            device_info = self.device.get_manufacturer_string() + " " + self.device.get_product_string()
-            if "keyboard" in device_info.lower() or "trackpad" in device_info.lower():
-                print(f"\n⚠️  Warning: Device appears to be a keyboard/trackpad: {device_info}")
-                print("   This may cause terminal input issues.")
-                print("   Consider using the keyboard listener approach instead:")
-                print("   python run_macropad_with_mocks.py usb-keypad")
-        except:
-            pass
-        
         self.running = True
-        terminal_modified = False
-        old_settings = None
         
         try:
-            # Suppress terminal echo if possible (helps with keyboard-like devices)
-            # Note: This may not work on all systems, especially macOS
-            try:
-                import sys
-                import termios
-                import tty
-                # Save terminal settings
-                old_settings = termios.tcgetattr(sys.stdin)
-                # Set terminal to raw mode (suppresses echo)
-                tty.setraw(sys.stdin.fileno())
-                terminal_modified = True
-            except (ImportError, AttributeError, OSError):
-                # termios not available (Windows) or can't modify terminal
-                terminal_modified = False
-                old_settings = None
-            
             # Main event loop
             while self.running:
                 self.read_hid_events()
-                time.sleep(0.1)  # Small delay to prevent CPU spinning
+                # No sleep needed - select() in read_hid_events handles timing
                 
         except KeyboardInterrupt:
             print("\n🛑 Keyboard interrupt - stopping...")
@@ -467,22 +451,17 @@ class HIDMacropadController:
             print(f"❌ Error: {e}")
             self.logger.error(f"Runtime error: {e}")
         finally:
-            # Restore terminal settings
-            if terminal_modified and old_settings:
-                try:
-                    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-                except:
-                    pass
             self.cleanup()
     
     def cleanup(self):
         """Cleanup resources"""
         self.running = False
-        if self.device:
+        if self.device is not None:
             try:
-                self.device.close()
+                os.close(self.device)
             except:
                 pass
+            self.device = None
         self.manager.close()
 
 def main():

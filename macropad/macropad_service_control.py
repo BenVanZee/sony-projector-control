@@ -24,12 +24,9 @@ except ImportError:
     EVDEV_AVAILABLE = False
     ecodes = None  # Placeholder
 
-# Try raw HID as fallback
-try:
-    import hid
-    HID_AVAILABLE = True
-except ImportError:
-    HID_AVAILABLE = False
+# Raw HID fallback now relies on hid_macropad_control which uses direct hidraw access,
+# so we don't need the external 'hid' module here. Keep a flag for clarity.
+HID_AVAILABLE = True
 
 class MacropadServiceController:
     """Macropad controller for headless/service operation"""
@@ -332,12 +329,13 @@ class MacropadServiceController:
             if self.run_evdev():
                 return
         
-        # Fallback to raw HID
+        # Fallback to raw HID (always available since hid_macropad_control uses hidraw)
         if HID_AVAILABLE:
             print("🔍 Trying raw HID (fallback)...")
             self.run_hid()
             return
         
+        # This branch is unlikely now, but keep for completeness
         print("❌ No HID access method available")
         print("   Install: sudo apt install python3-evdev python3-hidapi")
     
