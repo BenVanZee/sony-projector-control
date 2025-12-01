@@ -11,6 +11,8 @@ Complete guide for setting up macropads (Adafruit Macropad RP2040 and other HID 
 3. **Install `adafruit_hid` library** to `CIRCUITPY/lib/`
 4. **Unplug and replug** the macropad (boot.py runs on power-up)
 
+The macropad display will show button function labels via print() statements at startup and when buttons are pressed.
+
 The macropad now sends **raw HID reports** (not keyboard F-keys), which:
 - ✅ Won't interfere with terminal input
 - ✅ Works headless as a systemd service
@@ -68,6 +70,11 @@ python3 macropad/macropad_service_control.py
 **Code keeps crashing?**
 - Check that `adafruit_hid` library is in `CIRCUITPY/lib/`
 - Download from: https://circuitpython.org/libraries
+
+**Display not showing button labels?**
+- The display automatically shows print() output, including button function labels at startup
+- Button labels are printed when the macropad starts up
+- When you press a button, it shows "Button X pressed: Function Name"
 
 ## Service Setup (Raspberry Pi)
 
@@ -474,6 +481,7 @@ This gives you:
 - ✅ Perfect for 6 functions
 
 If you want better quality and LCD labels, go with the **Elgato Stream Deck Mini** ($80-100).
+
 
 
 

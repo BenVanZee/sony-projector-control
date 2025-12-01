@@ -72,7 +72,31 @@ if not USE_RAW_HID:
         Keycode.F9, Keycode.F10, Keycode.F11, Keycode.F12
     ]
 
-print("Macropad ready!")
+# Button function labels (matching hid_macropad_control.py)
+BUTTON_LABELS = {
+    1: "All On",
+    2: "All Off",
+    3: "Toggle Power",
+    4: "Blank Front",
+    5: "Unblank Front",
+    6: "Toggle Blank",
+    7: "Freeze Front",
+    8: "Unfreeze Front",
+    9: "Toggle Freeze",
+    10: "Reserved 10",
+    11: "Reserved 11",
+    12: "Reserved 12",
+}
+
+# Print button function labels at startup
+print("\n" + "="*30)
+print("Button Functions:")
+print("="*30)
+for button_num in sorted(BUTTON_LABELS.keys()):
+    print(f"Button {button_num}: {BUTTON_LABELS[button_num]}")
+print("="*30)
+
+print("\nMacropad ready!")
 if USE_RAW_HID:
     print("Mode: Raw HID (button number sent directly)")
 else:
@@ -93,7 +117,8 @@ while True:
                 report = bytes([button_num] + [0] * 7)  # 8-byte report
                 try:
                     raw_hid.send_report(report)
-                    print(f"Button {button_num} pressed (raw HID)")
+                    func_name = BUTTON_LABELS.get(button_num, "Unknown")
+                    print(f"Button {button_num} pressed: {func_name} (raw HID)")
                 except Exception as e:
                     print(f"Send error: {e}")
             else:
