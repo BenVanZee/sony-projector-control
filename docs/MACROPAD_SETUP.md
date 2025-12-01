@@ -7,33 +7,47 @@ Complete guide for setting up macropads (Adafruit Macropad RP2040 and other HID 
 ### Quick Start
 
 1. **Install CircuitPython** on the macropad (if not already installed)
-2. **Copy `macropad/code.py`** to the CIRCUITPY drive
+2. **Copy `macropad/boot.py` and `macropad/code.py`** to the CIRCUITPY drive
 3. **Install `adafruit_hid` library** to `CIRCUITPY/lib/`
-4. **Grant macOS Input Monitoring permission** (System Settings → Privacy & Security)
-5. **Run**: `python3 macropad/macropad_keyboard_listener.py`
+4. **Unplug and replug** the macropad (boot.py runs on power-up)
+
+The macropad now sends **raw HID reports** (not keyboard F-keys), which:
+- ✅ Won't interfere with terminal input
+- ✅ Works headless as a systemd service
+- ✅ Can be read directly via `/dev/hidraw*`
 
 ### Button Mappings
 
-| Button | Key Sent | Function |
-|--------|----------|----------|
-| 1 | 1 | All On |
-| 2 | 2 | All Off |
-| 3 | 3 | Blank Front |
-| 4 | 4 | Unblank Front |
-| 5 | 5 | Freeze Front |
-| 6 | 6 | Unfreeze Front |
-| 7-12 | 7, 8, 9, 0, -, = | (Available) |
+| Button | Raw HID Value | Function |
+|--------|---------------|----------|
+| 1 | 0x01 | All On |
+| 2 | 0x02 | All Off |
+| 3 | 0x03 | Toggle Power |
+| 4 | 0x04 | Blank Front |
+| 5 | 0x05 | Unblank Front |
+| 6 | 0x06 | Toggle Blank |
+| 7 | 0x07 | Freeze Front |
+| 8 | 0x08 | Unfreeze Front |
+| 9 | 0x09 | Toggle Freeze |
+| 10-12 | 0x0A-0x0C | (Reserved) |
 
 ### Usage
 
-#### Keyboard Listener (Recommended - doesn't block trackpad)
+#### Raspberry Pi (Headless Service) - Recommended
 ```bash
-python3 macropad/macropad_keyboard_listener.py
+# Run the setup script (installs deps, creates service, sets permissions)
+./scripts/create_macropad_service.sh
+
+# Start the service
+sudo systemctl start macropad-control.service
+
+# View logs
+journalctl -u macropad-control.service -f
 ```
 
-#### Raw HID (Alternative)
+#### Manual Testing
 ```bash
-python3 macropad/hid_macropad_control.py
+python3 macropad/macropad_service_control.py
 ```
 
 ### Troubleshooting
@@ -57,43 +71,56 @@ python3 macropad/hid_macropad_control.py
 
 ## Service Setup (Raspberry Pi)
 
-### Important: Use Raw HID for Service
+### How It Works
 
-**The keyboard listener (`macropad_keyboard_listener.py`) won't work as a service** because:
-- It requires `pynput` which needs a display/X server
-- Services run headless without a display
-- Function keys might still be captured by the system
+The service uses `macropad/macropad_service_control.py` which:
 
-**Solution: Use `hid_macropad_control.py` (raw HID)** which:
+- ✅ Tries **evdev** first (best for Linux headless)
+- ✅ Falls back to **raw HID** via direct `/dev/hidraw*` access
 - ✅ Works headless (no display needed)
-- ✅ Doesn't require X server
-- ✅ Reads directly from HID device
 - ✅ Won't interfere with terminal input
+- ✅ Auto-restarts on failure
 
-### Setup Steps
+### Quick Setup
 
-#### 1. Install Dependencies
-
-```bash
-sudo apt update
-sudo apt install -y python3-hidapi
-```
-
-#### 2. Create Service
-
-Run the setup script:
+Run the setup script (recommended):
 
 ```bash
 ./scripts/create_macropad_service.sh
 ```
 
-Or manually create the service:
+This will:
+1. Install `python3-evdev` and `python3-hidapi`
+2. Create udev rules for HID permissions
+3. Create and enable the systemd service
+
+### Manual Setup
+
+#### 1. Install Dependencies
+
+```bash
+sudo apt update
+sudo apt install -y python3-evdev python3-hidapi
+```
+
+#### 2. Set Up HID Permissions
+
+```bash
+# Create udev rule (or run setup_hid_permissions.sh)
+echo 'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666"' | sudo tee /etc/udev/rules.d/99-hidraw-permissions.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+See [HID_PERMISSIONS.md](HID_PERMISSIONS.md) for more details.
+
+#### 3. Create Service
 
 ```bash
 sudo nano /etc/systemd/system/macropad-control.service
 ```
 
-Add this content (update paths as needed):
+Add this content (update paths/user as needed):
 
 ```ini
 [Unit]
@@ -106,8 +133,8 @@ Type=simple
 User=YOUR_USERNAME
 Group=YOUR_USERNAME
 WorkingDirectory=/opt/projector-control
-Environment=PATH=/opt/projector-control/venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/opt/projector-control/venv/bin/python3 /opt/projector-control/macropad/hid_macropad_control.py
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/projector-control/macropad/macropad_service_control.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -118,30 +145,23 @@ TimeoutStartSec=60
 WantedBy=multi-user.target
 ```
 
-#### 3. Enable and Start
+#### 4. Enable and Start
 
 ```bash
-# Reload systemd
 sudo systemctl daemon-reload
-
-# Enable service (starts on boot)
 sudo systemctl enable macropad-control.service
-
-# Start service now
 sudo systemctl start macropad-control.service
-
-# Check status
 sudo systemctl status macropad-control.service
 ```
 
-#### 4. View Logs
+#### 5. View Logs
 
 ```bash
 # Follow logs in real-time
-sudo journalctl -u macropad-control.service -f
+journalctl -u macropad-control.service -f
 
 # View last 50 lines
-sudo journalctl -u macropad-control.service -n 50
+journalctl -u macropad-control.service -n 50
 ```
 
 ### Service Management

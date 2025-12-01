@@ -26,14 +26,32 @@ fi
 echo "Current user: $CURRENT_USER"
 echo "Project directory: $PROJECT_DIR"
 
-# Install hidapi if not already installed
-echo "📦 Checking for hidapi..."
+# Install dependencies
+echo "📦 Checking for dependencies..."
+if ! python3 -c "import evdev" 2>/dev/null; then
+    echo "   Installing python3-evdev..."
+    sudo apt update
+    sudo apt install -y python3-evdev
+else
+    echo "   ✅ evdev already installed"
+fi
+
 if ! python3 -c "import hid" 2>/dev/null; then
     echo "   Installing python3-hidapi..."
-    sudo apt update
     sudo apt install -y python3-hidapi
 else
     echo "   ✅ hidapi already installed"
+fi
+
+# Setup udev rules for HID access
+echo "🔧 Setting up HID permissions..."
+if [ ! -f /etc/udev/rules.d/99-hidraw-permissions.rules ]; then
+    echo 'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0666"' | sudo tee /etc/udev/rules.d/99-hidraw-permissions.rules > /dev/null
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger
+    echo "   ✅ udev rules created"
+else
+    echo "   ✅ udev rules already exist"
 fi
 
 # Create systemd service for HID macropad control
@@ -49,9 +67,8 @@ Type=simple
 User=$CURRENT_USER
 Group=$CURRENT_USER
 WorkingDirectory=$PROJECT_DIR
-Environment=PATH=$PROJECT_DIR/venv/bin:/usr/local/bin:/usr/bin:/bin
-Environment=DISPLAY=:0
-ExecStart=$PROJECT_DIR/venv/bin/python3 $PROJECT_DIR/macropad_service_control.py
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 $PROJECT_DIR/macropad/macropad_service_control.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
