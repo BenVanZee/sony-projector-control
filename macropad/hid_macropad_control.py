@@ -15,12 +15,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from projector_control import ProjectorManager
 
 # Try to import USB HID support
+HID_AVAILABLE = False
+HID_IMPORT_ERROR = None
+
 try:
     import hid
     HID_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     HID_AVAILABLE = False
-    print("❌ USB HID not available - install with: sudo apt install python3-hidapi")
+    HID_IMPORT_ERROR = str(e)
+    # Don't print here - let the run() method provide better diagnostics
 
 class HIDMacropadController:
     """HID Macropad controller for projector control"""
@@ -353,7 +357,48 @@ class HIDMacropadController:
         """Start the HID macropad listener"""
         if not HID_AVAILABLE:
             print("❌ Cannot start - USB HID not available")
-            print("   Install with: sudo apt install python3-hidapi")
+            print()
+            print("📋 Diagnostic Information:")
+            import sys
+            in_venv = hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+            print(f"   Python version: {sys.version.split()[0]}")
+            print(f"   Python executable: {sys.executable}")
+            print(f"   Virtual environment: {'Yes' if in_venv else 'No'}")
+            if in_venv:
+                print(f"   Venv path: {sys.prefix}")
+            if HID_IMPORT_ERROR:
+                print(f"   Import error: {HID_IMPORT_ERROR}")
+            print()
+            print("🔧 Installation Options:")
+            print()
+            if in_venv:
+                print("   ⚠️  You're using a virtual environment!")
+                print("   Apt packages (python3-hidapi) are NOT available in venv.")
+                print()
+                print("   ✅ RECOMMENDED: Install via pip in your venv:")
+                print("     pip install hidapi")
+                print()
+                print("   Or install system-wide and use system Python:")
+                print("     deactivate  # exit venv")
+                print("     sudo apt install -y python3-hidapi")
+                print("     python3 run_macropad_with_mocks.py hid-macropad")
+            else:
+                print("   Option 1: Install via apt (system-wide):")
+                print("     sudo apt update")
+                print("     sudo apt install -y python3-hidapi")
+                print()
+                print("   Option 2: If apt package doesn't work, try pip:")
+                print("     pip3 install hidapi")
+                print("     # Note: May require: sudo apt install libhidapi-hidraw0")
+            print()
+            print("   Verify installation with:")
+            print("     python3 -c 'import hid; print(\"✅ Success! hid module works\")'")
+            print()
+            print("   If still not working, check:")
+            print("     - Are you using 'python3' not 'python'?")
+            print("     - Try: which python3")
+            print("     - Try: python3 --version")
+            print()
             return
         
         print("🎬 HID Macropad Control Started")
