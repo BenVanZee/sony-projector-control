@@ -52,7 +52,11 @@ elif [ -z "$(ls -A)" ]; then
     echo "📥 Cloning repository from GitHub..."
     cd /opt
     sudo rm -rf projector-control
-    git clone "$REPO_URL" projector-control
+    # Clone to temp location first, then move with sudo
+    TEMP_DIR=$(mktemp -d)
+    git clone "$REPO_URL" "$TEMP_DIR/projector-control"
+    sudo mv "$TEMP_DIR/projector-control" /opt/
+    rm -rf "$TEMP_DIR"
     sudo chown -R $(whoami):$(whoami) /opt/projector-control
     cd /opt/projector-control
     echo "✅ Repository cloned successfully"
@@ -130,7 +134,11 @@ else
         # Clone fresh
         cd /opt
         sudo rm -rf projector-control
-        git clone "$REPO_URL" projector-control
+        # Clone to temp location first, then move with sudo
+        TEMP_DIR=$(mktemp -d)
+        git clone "$REPO_URL" "$TEMP_DIR/projector-control"
+        sudo mv "$TEMP_DIR/projector-control" /opt/
+        rm -rf "$TEMP_DIR"
         sudo chown -R $(whoami):$(whoami) /opt/projector-control
         cd /opt/projector-control
         
