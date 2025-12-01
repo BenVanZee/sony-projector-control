@@ -118,7 +118,7 @@ while True:
                 try:
                     raw_hid.send_report(report)
                     func_name = BUTTON_LABELS.get(button_num, "Unknown")
-                    print(f"Button {button_num} pressed: {func_name} (raw HID)")
+                    print(f"{button_num}: {func_name}")
                 except Exception as e:
                     print(f"Send error: {e}")
             else:
