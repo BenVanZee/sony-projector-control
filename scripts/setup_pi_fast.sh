@@ -31,6 +31,125 @@ sudo mkdir -p /opt/projector-control
 sudo chown $(whoami):$(whoami) /opt/projector-control
 cd /opt/projector-control
 
+# Set up Git repository
+echo "🔗 Setting up Git repository..."
+REPO_URL="https://github.com/BenVanZee/sony-projector-control.git"
+
+if [ -d ".git" ]; then
+    echo "✅ Git repository already exists"
+    # Check if remote is set correctly
+    if ! git remote get-url origin &>/dev/null; then
+        echo "📝 Adding Git remote..."
+        git remote add origin "$REPO_URL"
+    else
+        CURRENT_REMOTE=$(git remote get-url origin)
+        if [ "$CURRENT_REMOTE" != "$REPO_URL" ]; then
+            echo "🔄 Updating Git remote URL..."
+            git remote set-url origin "$REPO_URL"
+        fi
+    fi
+    echo "✅ Git repository configured"
+elif [ -z "$(ls -A)" ]; then
+    # Directory is empty, clone the repository
+    echo "📥 Cloning repository from GitHub..."
+    cd /opt
+    sudo rm -rf projector-control
+    git clone "$REPO_URL" projector-control
+    sudo chown -R $(whoami):$(whoami) /opt/projector-control
+    cd /opt/projector-control
+    echo "✅ Repository cloned successfully"
+else
+    # Directory has files but no git, offer to set up
+    echo "⚠️  Directory has files but is not a Git repository"
+    echo ""
+    echo "Options:"
+    echo "  1. Clone fresh repository (recommended - backs up config.py)"
+    echo "  2. Initialize Git and merge with repository"
+    echo "  3. Skip Git setup"
+    read -p "Choose option (1/2/3) [1]: " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[2]$ ]]; then
+        # Option 2: Initialize and merge
+        echo "📝 Initializing Git repository..."
+        
+        # Backup config.py if it exists
+        if [ -f "config.py" ]; then
+            echo "💾 Backing up config.py..."
+            cp config.py config.py.backup
+        fi
+        
+        # Initialize git and add remote
+        git init
+        git remote add origin "$REPO_URL"
+        
+        # Fetch the repository
+        echo "📥 Fetching repository..."
+        git fetch origin
+        
+        # Add existing files to git first (so they're tracked)
+        echo "📝 Staging existing files..."
+        git add -A || true
+        
+        # Commit existing files as a starting point
+        git commit -m "Initial commit: existing installation" || true
+        
+        # Now checkout/merge from origin
+        echo "🔄 Merging with repository..."
+        git checkout -b main origin/main 2>/dev/null || {
+            # If checkout fails, try merging instead
+            echo "⚠️  Checkout failed, trying merge approach..."
+            git branch -M main 2>/dev/null || true
+            git merge origin/main --allow-unrelated-histories -m "Merge with repository" || {
+                echo "⚠️  Merge had conflicts. Resolving by accepting repository version..."
+                # For setup script, we'll prefer the repo version and restore config
+                git checkout --theirs . 2>/dev/null || true
+                git add -A
+                git commit -m "Merge: using repository version" || true
+            }
+        }
+        
+        # Restore config.py backup if it exists
+        if [ -f "config.py.backup" ]; then
+            echo "📝 Restoring your config.py..."
+            cp config.py.backup config.py
+            echo "✅ Your config.py has been restored"
+            echo "   Please review it to ensure your settings are correct"
+        fi
+        
+        echo "✅ Git repository initialized"
+    elif [[ ! $REPLY =~ ^[3]$ ]]; then
+        # Option 1: Clone fresh (default)
+        echo "📥 Cloning fresh repository from GitHub..."
+        
+        # Backup config.py if it exists
+        if [ -f "config.py" ]; then
+            echo "💾 Backing up config.py..."
+            cp config.py /tmp/config.py.backup
+            CONFIG_BACKUP="/tmp/config.py.backup"
+        fi
+        
+        # Clone fresh
+        cd /opt
+        sudo rm -rf projector-control
+        git clone "$REPO_URL" projector-control
+        sudo chown -R $(whoami):$(whoami) /opt/projector-control
+        cd /opt/projector-control
+        
+        # Restore config.py if it was backed up
+        if [ -f "$CONFIG_BACKUP" ]; then
+            echo "📝 Restoring your config.py..."
+            cp "$CONFIG_BACKUP" config.py
+            echo "✅ Your config.py has been restored"
+            echo "   Please review it to ensure your settings are correct"
+        fi
+        
+        echo "✅ Repository cloned successfully"
+    else
+        echo "⏭️  Skipping Git setup (you can set it up later)"
+    fi
+fi
+
 # Update package lists only (no system upgrade)
 echo "📋 Updating package lists..."
 sudo apt update
@@ -263,28 +382,28 @@ echo "Current user: $(whoami)"
 echo "Project directory: /opt/projector-control"
 echo ""
 echo "Next steps:"
-echo "1. Copy your projector control files to /opt/projector-control/"
-echo "2. Edit config.py with your actual projector IP addresses:"
-echo "   sudo nano /opt/projector-control/config.py"
+echo "1. Edit config.py with your actual projector IP addresses:"
+echo "   nano /opt/projector-control/config.py"
 echo ""
-echo "3. Test the setup:"
+echo "2. Test the setup:"
 echo "   cd /opt/projector-control"
 echo "   python3 test_setup.py"
 echo ""
-echo "4. Test basic connectivity:"
+echo "3. Test basic connectivity:"
 echo "   python3 test_connection.py"
 echo ""
-echo "5. Enable auto-start service:"
+echo "4. Enable auto-start service:"
 echo "   sudo systemctl enable usb-keypad-control.service"
 echo "   sudo systemctl start usb-keypad-control.service"
 echo ""
-echo "6. Check service status:"
+echo "5. Check service status:"
 echo "   sudo systemctl status usb-keypad-control.service"
 echo ""
 echo "For more help, see PI_SETUP_GUIDE.md"
 echo ""
-echo "🔧 To copy files from your computer, use:"
-echo "   scp -r /path/to/sony-projector-control/* $(whoami)@your-pi-ip:/opt/projector-control/"
+echo "🔄 To update the code in the future, use:"
+echo "   cd /opt/projector-control"
+echo "   git pull origin main"
 echo ""
 echo "📝 Note: This setup works with any user account, not just 'pi'"
 echo "   The systemd service will run as: $(whoami)"

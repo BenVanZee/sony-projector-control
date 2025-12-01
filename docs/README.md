@@ -41,6 +41,43 @@ python3 --version
 chmod +x projector_control.py projector_cli.py
 ```
 
+### Raspberry Pi Installation
+
+**For Raspberry Pi, use the automated setup script** (recommended):
+
+```bash
+# Download and run the setup script
+wget https://raw.githubusercontent.com/BenVanZee/sony-projector-control/main/scripts/setup_pi.sh
+chmod +x setup_pi.sh
+./setup_pi.sh
+```
+
+The setup script will:
+- Install all required system packages via `apt`
+- Create a virtual environment automatically
+- Set up proper permissions
+- Configure the systemd service
+
+**If installing manually on Raspberry Pi:**
+
+On modern Debian/Ubuntu systems (including Raspberry Pi OS), Python environments are externally managed. You **must** create a virtual environment before installing packages:
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Now you can install packages (though none are required for this project)
+pip install --upgrade pip
+
+# Note: This project uses system packages installed via apt, not pip
+# See PI_SETUP_GUIDE.md for complete setup instructions
+```
+
+**Note:** This project uses system packages (installed via `apt`) rather than pip packages. The `requirements.txt` file is empty because all dependencies are installed as system packages. See `PI_SETUP_GUIDE.md` for complete setup instructions.
+
 ## Configuration
 
 Edit `config.py` to configure your projectors with friendly nicknames:
@@ -294,18 +331,36 @@ done
 
 ### Common Issues
 
-1. **Connection Failed**
+1. **"externally-managed-environment" Error**
+   
+   This error occurs when trying to install packages without a virtual environment on modern Debian/Ubuntu systems (including Raspberry Pi OS).
+   
+   **Solution:**
+   ```bash
+   # Create and activate a virtual environment
+   python3 -m venv venv
+   source venv/bin/activate
+   
+   # Now pip commands will work
+   pip install --upgrade pip
+   ```
+   
+   **Note:** This project doesn't require any pip packages - all dependencies are installed via `apt` (see `PI_SETUP_GUIDE.md`). The virtual environment is mainly needed if you want to install optional development tools.
+   
+   **For Raspberry Pi:** Use the automated setup script (`setup_pi.sh`) which handles this automatically.
+
+2. **Connection Failed**
    - Verify projector IP addresses
    - Check network connectivity (`ping 10.10.10.2`)
    - Ensure port 4352 is open
    - Check firewall settings
 
-2. **Commands Not Working**
+3. **Commands Not Working**
    - Verify projector is powered on
    - Check PJLink is enabled in projector settings
    - Try reconnecting with `python3 projector_cli.py status`
 
-3. **Partial Control**
+4. **Partial Control**
    - Some projectors may have PJLink disabled
    - Check projector network settings
    - Verify PJLink authentication if enabled

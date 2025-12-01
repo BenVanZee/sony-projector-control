@@ -9,7 +9,7 @@ Complete setup guide for installing the projector control system on your Raspber
 # Download the setup script
 wget https://raw.githubusercontent.com/BenVanZee/sony-projector-control/main/scripts/setup_pi.sh
 chmod +x setup_pi.sh
-sudo ./setup_pi.sh
+./setup_pi.sh # sudo not needed
 ```
 
 ### 2. Configure Your Projectors
@@ -366,6 +366,128 @@ sudo apt update && sudo apt upgrade -y
 cd /opt/projector-control
 source venv/bin/activate
 pip install --upgrade pip
+```
+
+### Update Repository Code
+
+If you installed the repository using Git, you can update to the latest version:
+
+```bash
+# Navigate to the project directory
+cd /opt/projector-control
+
+# Backup your current configuration (important!)
+cp config.py config.py.backup
+
+# If you cloned from GitHub, pull the latest changes
+git pull origin main
+
+# If you need to set up the remote (first time only):
+# git remote add origin https://github.com/BenVanZee/sony-projector-control.git
+# git pull origin main
+
+# Restore your configuration if it was overwritten
+# (Compare config.py.backup with config.py and merge any changes)
+```
+
+**If you installed manually (without Git):**
+
+You have three options:
+
+**Option 1: Convert existing directory to Git repository (Recommended)**
+
+This allows you to use `git pull` for future updates without losing your current setup:
+
+```bash
+# Navigate to the project directory
+cd /opt/projector-control
+
+# Backup your current configuration
+cp config.py config.py.backup
+
+# Initialize git repository
+git init
+
+# Add the remote repository
+git remote add origin https://github.com/BenVanZee/sony-projector-control.git
+
+# Fetch the latest code
+git fetch origin
+
+# Create a branch and set it to track main
+git checkout -b main origin/main
+
+# If you have local changes you want to keep, you may need to:
+# git add config.py
+# git commit -m "Preserve local config"
+# git merge origin/main  # Merge any conflicts manually
+
+# Restore your configuration (it may have been overwritten)
+cp config.py.backup config.py
+nano config.py  # Verify your settings are correct
+```
+
+**Option 2: Re-clone the repository (Clean start)**
+
+This gives you a fresh Git repository but requires restoring your config:
+
+```bash
+# Navigate to parent directory
+cd /opt
+
+# Backup your current configuration
+cp projector-control/config.py ~/config.py.backup
+
+# Remove old directory
+sudo rm -rf projector-control
+
+# Clone fresh copy
+git clone https://github.com/BenVanZee/sony-projector-control.git projector-control
+sudo chown -R $(whoami):$(whoami) /opt/projector-control
+cd projector-control
+
+# Restore your configuration
+cp ~/config.py.backup config.py
+nano config.py  # Verify your settings are correct
+
+# Recreate virtual environment if needed
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+```
+
+**Option 3: Use SCP/SFTP to copy updated files**
+
+Copy files manually from your development machine:
+
+```bash
+# On your local machine (Mac/PC):
+scp -r /path/to/sony-projector-control/* your-username@your-pi-ip:/opt/projector-control/
+
+# Or use SFTP, or copy files selectively
+```
+
+**After updating, restart any running services:**
+
+```bash
+# If you have a systemd service running
+sudo systemctl restart projector-control.service
+
+# Or restart USB keypad service if using that
+sudo systemctl restart usb-keypad-control.service
+
+# Check service status
+sudo systemctl status projector-control.service
+```
+
+**Test the update:**
+
+```bash
+# Test basic connectivity
+python3 /opt/projector-control/tests/test_connection.py
+
+# Test CLI commands
+python3 /opt/projector-control/projector_cli.py status
 ```
 
 ### Backup Configuration

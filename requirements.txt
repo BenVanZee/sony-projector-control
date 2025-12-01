@@ -1,7 +1,18 @@
 # Sony Projector Control System Requirements
 # No external dependencies - uses only Python standard library
+#
+# IMPORTANT: This project uses system packages installed via apt, not pip.
+# On Raspberry Pi, use the setup script (setup_pi.sh) which installs:
+#   - python3-rpi.gpio (for GPIO support)
+#   - python3-hidapi (for USB HID devices)
+#   - python3-pynput (for keyboard input)
+#
+# If you encounter "externally-managed-environment" error:
+#   1. Create a virtual environment: python3 -m venv venv
+#   2. Activate it: source venv/bin/activate
+#   3. Then you can install optional dev packages below (if needed)
 
-# For development/testing (optional)
+# For development/testing (optional - uncomment if needed)
 # pytest>=6.0.0
 # black>=21.0.0
 # flake8>=3.8.0
