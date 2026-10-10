@@ -14,6 +14,24 @@ The rear projector is a Sony VPL-PHZ51, installed October 2026. Power, blank and
 
 The PHZ51 accepts one PJLink connection at a time. A second connection opened while the first is still held timed out after 3 seconds (tested 2026-10-10). Anything that talks to a projector must close its connection promptly, and two programs must not hold connections to the same projector at once.
 
+## Status lights
+
+The lights under keys 10, 11 and 12 show the power state of the Left, Right and Rear projectors.
+
+| Light | Meaning |
+|---|---|
+| Green | On |
+| Dim white | Off |
+| Amber | Warming up or cooling down |
+| Red | The Pi cannot reach the projector |
+| Dark | The Macropad has heard nothing from the Pi for 15 seconds |
+
+The Pi checks all three projectors every 5 seconds, and again right after each button press. While any projector is unreachable it checks every 20 seconds, so a red light can take up to 20 seconds to clear after the projector comes back. Pressing any button forces an immediate check.
+
+All three dark means the service is stopped, the Macropad is running firmware from before the lights were added, or the Pi is running a service from before then. Each status change is logged once as `Projector status: left=ON, right=ON, rear=unreachable`.
+
+Checks and button presses take turns on the Pi, because each projector accepts one connection at a time. A button pressed during a check waits for it to finish. That is a few hundredths of a second normally and up to 2 seconds when a projector is unreachable.
+
 ## Normal health checks
 
 ```bash

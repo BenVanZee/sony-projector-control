@@ -1,5 +1,6 @@
 # CircuitPython code for Adafruit Macropad RP2040
 # Sends raw HID reports (button number) — Pi reads via /dev/hidraw*
+# Receives status reports from the Pi and lights keys 10-12 (Left, Right, Rear)
 #
 # USB busy is common if send_report is called while the previous report
 # has not yet been picked up by the host. Always: retry, send a release,
@@ -62,9 +63,9 @@ BUTTON_LABELS = {
     7: "Freeze Front",
     8: "Unfreeze Front",
     9: "Toggle Freeze",
-    10: "Reserved 10",
-    11: "Reserved 11",
-    12: "Reserved 12",
+    10: "Left status",
+    11: "Right status",
+    12: "Rear status",
 }
 
 print("\n" + "=" * 30)
@@ -102,6 +103,72 @@ def send_button(button_num):
 
 
 # ---------------------------------------------------------------------------
+# Status lights — keys 10-12 show Left, Right, Rear power state
+# ---------------------------------------------------------------------------
+# The Pi sends: marker byte, one code per projector, zero padding. Codes must
+# match STATUS_CODES in hid_macropad_control.py. Colors are (red, green, blue).
+STATUS_REPORT_MARKER = 0x53
+STATUS_FIRST_KEY = 9  # 0-indexed pixel under key 10
+STATUS_LIGHT_COUNT = 3
+STATUS_COLORS = {
+    1: (4, 4, 4),    # off: dim white
+    2: (0, 60, 0),   # on: green
+    3: (50, 25, 0),  # warming or cooling: amber
+    4: (60, 0, 0),   # unreachable: red
+}
+NO_STATUS = (0,) * STATUS_LIGHT_COUNT  # unlit: the Pi has said nothing
+# The Pi repeats its report every 2s. Go dark when it stops, so a stopped
+# service cannot leave a stale green light on.
+STATUS_STALE_S = 15
+PIXEL_COUNT = 12
+
+# Built-in neopixel_write, so nothing needs copying into CIRCUITPY/lib. Lights
+# are optional: any failure here must leave the buttons working.
+try:
+    import digitalio
+    import neopixel_write
+
+    pixel_pin = digitalio.DigitalInOut(board.NEOPIXEL)
+    pixel_pin.direction = digitalio.Direction.OUTPUT
+except Exception as e:
+    print("Status lights disabled: %s" % e)
+    pixel_pin = None
+
+pixel_buffer = bytearray(PIXEL_COUNT * 3)
+_last_status_time = None
+
+
+def show_status(codes):
+    for offset in range(STATUS_LIGHT_COUNT):
+        red, green, blue = STATUS_COLORS.get(codes[offset], (0, 0, 0))
+        start = (STATUS_FIRST_KEY + offset) * 3
+        # The Macropad's pixels take green first.
+        pixel_buffer[start] = green
+        pixel_buffer[start + 1] = red
+        pixel_buffer[start + 2] = blue
+    neopixel_write.neopixel_write(pixel_pin, pixel_buffer)
+
+
+def update_status_lights():
+    global _last_status_time
+    now = time.monotonic()
+    report = raw_hid.get_last_received_report()
+    if report and len(report) > STATUS_LIGHT_COUNT and report[0] == STATUS_REPORT_MARKER:
+        show_status(report[1 : 1 + STATUS_LIGHT_COUNT])
+        _last_status_time = now
+    elif _last_status_time is not None and now - _last_status_time > STATUS_STALE_S:
+        show_status(NO_STATUS)
+        _last_status_time = None
+
+
+if pixel_pin is not None:
+    try:
+        show_status(NO_STATUS)
+    except Exception as e:
+        print("Status lights disabled: %s" % e)
+        pixel_pin = None
+
+# ---------------------------------------------------------------------------
 # Main loop
 # ---------------------------------------------------------------------------
 while True:
@@ -114,6 +181,13 @@ while True:
             if raw_hid is not None:
                 if send_button(button_num):
                     print("%d: %s" % (button_num, func_name))
+
+        if pixel_pin is not None and raw_hid is not None:
+            try:
+                update_status_lights()
+            except Exception as e:
+                print("Status lights disabled: %s" % e)
+                pixel_pin = None
 
         time.sleep(0.01)
 

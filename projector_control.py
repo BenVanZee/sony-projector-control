@@ -31,12 +31,21 @@ def configured_timeout(default: float = DEFAULT_TIMEOUT) -> float:
 class ProjectorController:
     """Controls Sony VPL-PHZ61 projectors via PJLink protocol"""
 
-    def __init__(self, ip: str, port: int = 4352, timeout: Optional[float] = None):
+    def __init__(
+        self,
+        ip: str,
+        port: int = 4352,
+        timeout: Optional[float] = None,
+        quiet: bool = False,
+    ):
         if timeout is None:
             timeout = configured_timeout()
         self.ip = ip
         self.port = port
         self.timeout = timeout
+        # Routine status polls connect every few seconds; logging each connect
+        # at INFO or ERROR would flood the journal.
+        self._connect_log_level = logging.DEBUG if quiet else None
         self.socket = None
         self.lock = threading.Lock()
         self._recv_buffer = bytearray()
@@ -66,7 +75,10 @@ class ProjectorController:
                     raise ConnectionError("PJLink authentication is required")
                 if greeting != "PJLINK 0":
                     raise ConnectionError(f"Invalid PJLink greeting: {greeting!r}")
-                logger.info(f"Connected to {self.ip}: {greeting}")
+                logger.log(
+                    self._connect_log_level or logging.INFO,
+                    f"Connected to {self.ip}: {greeting}",
+                )
                 return True
             except Exception as e:
                 if candidate is not None:
@@ -76,7 +88,10 @@ class ProjectorController:
                         pass
                 self.socket = None
                 self._recv_buffer.clear()
-                logger.error(f"Failed to connect to {self.ip}: {e}")
+                logger.log(
+                    self._connect_log_level or logging.ERROR,
+                    f"Failed to connect to {self.ip}: {e}",
+                )
                 return False
 
     def _read_line_unlocked(self) -> str:
@@ -292,9 +307,10 @@ class ProjectorManager:
         projectors: List[Tuple[str, int]],
         aliases: dict = None,
         timeout: Optional[float] = None,
+        quiet: bool = False,
     ):
         self.controllers = {
-            ip: ProjectorController(ip, port, timeout)
+            ip: ProjectorController(ip, port, timeout, quiet)
             for ip, port in projectors
         }
         self.aliases = aliases or {}

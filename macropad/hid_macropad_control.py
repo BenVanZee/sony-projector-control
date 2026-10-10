@@ -10,6 +10,9 @@ Important design notes:
   - A disconnected hidraw descriptor remains open but returns EIO forever, so
     fatal reads must close it before discovery opens the re-enumerated device.
   - Button actions run on a worker while the main loop owns HID lifecycle.
+  - Status polls for the key lights run on that same worker between buttons.
+    The projectors accept one PJLink connection at a time, so a poll must
+    never overlap a button action.
 """
 
 from __future__ import annotations
@@ -52,6 +55,24 @@ INITIAL_BACKOFF_S = 0.25
 HEALTHY_CONNECTION_S = 5.0
 # Ping the watchdog at most this often; the poll loop runs ~10x/second
 HEARTBEAT_INTERVAL_S = 2.0
+# Status lights: keys 10-12 show the power state of the first three projectors
+# in config order (Left, Right, Rear). The report is the marker byte, one code
+# per projector, then zero padding. Codes must match STATUS_COLORS in code.py.
+STATUS_REPORT_MARKER = 0x53
+STATUS_LIGHT_COUNT = 3
+STATUS_UNREACHABLE = 4
+STATUS_CODES = {"OFF": 1, "ON": 2, "WARMING": 3, "COOLING": 3}
+STATUS_POLL_INTERVAL_S = 5.0
+# Poll less often while a projector is unreachable, so its connect timeouts
+# rarely sit in front of a button press.
+STATUS_POLL_UNREACHABLE_INTERVAL_S = 20.0
+# A button pressed during a poll waits for it. Two connect attempts at this
+# timeout bound that wait when a projector is unreachable.
+STATUS_POLL_TIMEOUT_S = 1.0
+# Repeat an unchanged report so a replugged Macropad relights, and so the
+# firmware can tell a silent service from an unchanged projector.
+STATUS_RESEND_S = 2.0
+HID_REPORT_LEN = 8
 # Re-log a persistent error state this often so a bad udev rule stays visible
 PROBLEM_STATE_RELOG_S = 300.0
 
@@ -71,6 +92,13 @@ class HIDMacropadController:
 
         projector_tuples = [(p["ip"], p["port"]) for p in projectors]
         self.manager = ProjectorManager(projector_tuples)
+        self.status_manager = ProjectorManager(
+            projector_tuples, timeout=STATUS_POLL_TIMEOUT_S, quiet=True
+        )
+        self._status_report: Optional[bytes] = None
+        self._status_sent: Optional[bytes] = None
+        self._status_sent_time = 0.0
+        self._next_status_poll = 0.0
 
         self.running = False
         self.device: Optional[int] = None
@@ -449,7 +477,8 @@ class HIDMacropadController:
                     )
                     continue
 
-                fd = os.open(hidraw_path, os.O_RDONLY | os.O_NONBLOCK)
+                # Read-write: button reports come in, status reports go out.
+                fd = os.open(hidraw_path, os.O_RDWR | os.O_NONBLOCK)
                 return fd, hidraw_path
             except PermissionError:
                 self._set_hid_state(
@@ -515,13 +544,16 @@ class HIDMacropadController:
             with self._action_condition:
                 if self._pending_button is None and self.running:
                     self._action_condition.wait(timeout=0.5)
-                if self._pending_button is None:
-                    if not self.running:
-                        return
-                    continue
+                if self._pending_button is None and not self.running:
+                    return
                 button_num = self._pending_button
                 self._pending_button = None
+            if button_num is None:
+                self._poll_status_if_due()
+                continue
             self._execute_button(button_num)
+            # Refresh the lights as soon as the worker is idle again.
+            self._next_status_poll = 0.0
 
     def _execute_button(self, button_num: int) -> None:
         if button_num not in self.button_functions:
@@ -655,7 +687,60 @@ class HIDMacropadController:
             self.logger.error(f"Unexpected error in read_hid_events: {e}")
             raise
 
+        self._send_status_report()
         self._notify_watchdog()
+
+    # ------------------------------------------------------------------
+    # Status lights
+    # ------------------------------------------------------------------
+    def _poll_status_if_due(self) -> None:
+        """Read each projector's power state and stage it for the Macropad."""
+        now = time.monotonic()
+        if now < self._next_status_poll:
+            return
+        self._next_status_poll = now + STATUS_POLL_INTERVAL_S
+
+        ips = [p["ip"] for p in self.projectors[:STATUS_LIGHT_COUNT]]
+        try:
+            states = self.status_manager.run_on(ips, "get_power_status")
+        except Exception as e:
+            self.logger.warning("Status poll failed: %s", e)
+            return
+
+        codes = [
+            STATUS_CODES.get(states.get(ip), STATUS_UNREACHABLE) for ip in ips
+        ]
+        if STATUS_UNREACHABLE in codes:
+            self._next_status_poll = now + STATUS_POLL_UNREACHABLE_INTERVAL_S
+        report = bytes([STATUS_REPORT_MARKER] + codes).ljust(HID_REPORT_LEN, b"\0")
+        if report != self._status_report:
+            summary = ", ".join(
+                f"{p.get('nickname', p['ip'])}={states.get(p['ip']) or 'unreachable'}"
+                for p in self.projectors[:STATUS_LIGHT_COUNT]
+            )
+            self.logger.info("Projector status: %s", summary)
+        self._status_report = report
+
+    def _send_status_report(self) -> None:
+        """Write the staged status to the Macropad from the HID-owning thread."""
+        report = self._status_report
+        if report is None or self.device is None:
+            return
+        now = time.monotonic()
+        if (
+            report == self._status_sent
+            and now - self._status_sent_time < STATUS_RESEND_S
+        ):
+            return
+        self._status_sent = report
+        self._status_sent_time = now
+        try:
+            # hidraw takes the report ID first; 0 means the device has none.
+            os.write(self.device, b"\x00" + report)
+        except OSError as e:
+            # The read path owns disconnect handling; a missed light update
+            # is repeated on the next resend.
+            self.logger.debug("Status report write failed: %s", e)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -699,6 +784,7 @@ class HIDMacropadController:
         self._close_device()
         try:
             self.manager.close()
+            self.status_manager.close()
         except Exception:
             pass
 

@@ -1,5 +1,6 @@
 import errno
 import io
+import os
 import re
 import threading
 import time
@@ -10,6 +11,8 @@ from unittest import mock
 from macropad.hid_macropad_control import (
     MAX_BACKOFF_S,
     STABLE_DEVICE_PATH,
+    STATUS_POLL_UNREACHABLE_INTERVAL_S,
+    STATUS_RESEND_S,
     HIDMacropadController,
 )
 
@@ -496,6 +499,142 @@ class HIDMacropadControllerTests(unittest.TestCase):
             controller.read_hid_events()
 
         heartbeat.assert_not_called()
+
+    def make_status_controller(self, states):
+        """Three configured projectors whose status poll returns ``states``."""
+        projectors = [
+            {"ip": "10.0.0.1", "port": 4352, "nickname": "left"},
+            {"ip": "10.0.0.2", "port": 4352, "nickname": "right"},
+            {"ip": "10.0.0.3", "port": 4352, "nickname": "rear"},
+        ]
+        controller = HIDMacropadController(projectors=projectors, debug_mode=False)
+        controller.status_manager = mock.Mock()
+        controller.status_manager.run_on.return_value = dict(
+            zip(["10.0.0.1", "10.0.0.2", "10.0.0.3"], states)
+        )
+        return controller
+
+    def test_status_poll_stages_one_code_per_projector_in_config_order(self):
+        """Keys 10-12 follow Left, Right, Rear; no answer means unreachable."""
+        controller = self.make_status_controller(["ON", "WARMING", None])
+
+        controller._poll_status_if_due()
+
+        self.assertEqual(
+            bytes([0x53, 2, 3, 4, 0, 0, 0, 0]), controller._status_report
+        )
+        controller.status_manager.run_on.assert_called_once_with(
+            ["10.0.0.1", "10.0.0.2", "10.0.0.3"], "get_power_status"
+        )
+
+    def test_status_poll_waits_for_its_interval(self):
+        """The worker loop wakes twice a second; it must not poll that often."""
+        controller = self.make_status_controller(["ON", "ON", "OFF"])
+
+        controller._poll_status_if_due()
+        controller._poll_status_if_due()
+
+        self.assertEqual(1, controller.status_manager.run_on.call_count)
+
+    def test_unreachable_projector_slows_the_status_poll(self):
+        """Connect timeouts must rarely sit in front of a button press."""
+        controller = self.make_status_controller(["ON", "ON", None])
+
+        with mock.patch(
+            "macropad.hid_macropad_control.time.monotonic", return_value=100.0
+        ):
+            controller._poll_status_if_due()
+
+        self.assertEqual(100.0 + STATUS_POLL_UNREACHABLE_INTERVAL_S, controller._next_status_poll)
+
+    def test_status_poll_runs_only_when_no_button_is_waiting(self):
+        """A button action and a poll never overlap: one PJLink connection."""
+        controller = self.make_status_controller(["ON", "ON", "ON"])
+        order = []
+        polled_after_button = threading.Event()
+
+        def poll(*args):
+            order.append("poll")
+            if "button" in order:
+                polled_after_button.set()
+            return {}
+
+        controller.status_manager.run_on.side_effect = poll
+        controller.button_functions = {1: ("first", lambda: order.append("button"))}
+        controller._pending_button = 1
+        controller.running = True
+        worker = threading.Thread(target=controller._action_worker)
+        worker.start()
+        self.assertTrue(polled_after_button.wait(timeout=2))
+        controller.running = False
+        with controller._action_condition:
+            controller._action_condition.notify_all()
+        worker.join(timeout=2)
+
+        self.assertEqual(["button", "poll"], order[:2])
+
+    def test_status_report_is_written_with_a_zero_report_id_and_rate_limited(self):
+        controller = self.make_status_controller(["ON", "OFF", "ON"])
+        controller._poll_status_if_due()
+        controller.device = 7
+
+        with mock.patch("macropad.hid_macropad_control.os.write") as written:
+            controller._send_status_report()
+            controller._send_status_report()
+
+        written.assert_called_once_with(
+            7, bytes([0, 0x53, 2, 1, 2, 0, 0, 0, 0])
+        )
+
+    def test_unchanged_status_report_is_repeated_after_the_resend_interval(self):
+        """A replugged Macropad relights without waiting for a state change."""
+        controller = self.make_status_controller(["ON", "OFF", "ON"])
+        controller._poll_status_if_due()
+        controller.device = 7
+
+        with (
+            mock.patch("macropad.hid_macropad_control.os.write") as written,
+            mock.patch(
+                "macropad.hid_macropad_control.time.monotonic",
+                side_effect=[50.0, 50.0 + STATUS_RESEND_S],
+            ),
+        ):
+            controller._send_status_report()
+            controller._send_status_report()
+
+        self.assertEqual(2, written.call_count)
+
+    def test_failed_status_write_does_not_disturb_the_service(self):
+        controller = self.make_status_controller(["ON", "OFF", "ON"])
+        controller._poll_status_if_due()
+        controller.device = 7
+
+        with mock.patch(
+            "macropad.hid_macropad_control.os.write",
+            side_effect=OSError(errno.EIO, "gone"),
+        ):
+            controller._send_status_report()
+
+        self.assertEqual(7, controller.device)
+
+    def test_macropad_is_opened_read_write_for_status_reports(self):
+        controller = self.make_controller()
+        exists, glob_paths, realpath, opener = self.discovery_patches(
+            VENDOR_DESCRIPTOR
+        )
+
+        with (
+            exists,
+            glob_paths,
+            realpath,
+            opener,
+            mock.patch(
+                "macropad.hid_macropad_control.os.open", return_value=7
+            ) as opened,
+        ):
+            controller.find_hid_macropad()
+
+        self.assertTrue(opened.call_args.args[1] & os.O_RDWR)
 
 
 if __name__ == "__main__":
