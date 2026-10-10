@@ -115,6 +115,23 @@ class ProjectorControllerTests(unittest.TestCase):
 
         self.assertEqual(("FROZEN", "ON"), (frozen, live))
 
+    def test_display_state_is_unknown_when_the_projector_goes_quiet_midway(self):
+        """Power answered, then silence: not green, and no further queries."""
+        state, sent = self.display_state_after(
+            b"%1POWR=1\r", socket.timeout("no reply"), socket.timeout("no reply")
+        )
+
+        self.assertIsNone(state)
+        self.assertNotIn(b"%2FREZ ?\r", sent)
+
+    def test_display_state_treats_an_unparsed_blank_reply_as_on(self):
+        """A video-only mute set from the remote must not read as unreachable."""
+        state, _ = self.display_state_after(
+            b"%1POWR=1\r", b"%1AVMT=11\r", b"%2FREZ=0\r"
+        )
+
+        self.assertEqual("ON", state)
+
     def test_idempotent_query_retries_once_after_connection_reset(self):
         """A reset response socket gets one fresh-connection retry."""
         first = ScriptedSocket(

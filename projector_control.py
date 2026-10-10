@@ -46,6 +46,7 @@ class ProjectorController:
         # Routine status polls run every few seconds; logging each connect and
         # reply at INFO or ERROR would flood the journal.
         self._info_level = logging.DEBUG if quiet else logging.INFO
+        self._warning_level = logging.DEBUG if quiet else logging.WARNING
         self._connect_error_level = logging.DEBUG if quiet else logging.ERROR
         self.socket = None
         self.lock = threading.Lock()
@@ -159,8 +160,9 @@ class ProjectorController:
                     logger.debug(f"Received from {self.ip}: {response}")
                     return response
             except Exception as e:
-                logger.warning(
-                    "Transmit %s failed on %s: %s", transmits, self.ip, e
+                logger.log(
+                    self._warning_level,
+                    "Transmit %s failed on %s: %s", transmits, self.ip, e,
                 )
                 self.disconnect()
                 if not is_query:
@@ -205,14 +207,23 @@ class ProjectorController:
     def get_display_state(self) -> Optional[str]:
         """Power state, refined to BLANKED or FROZEN while the projector is on.
 
-        Blank wins over freeze: a blanked screen is what the room sees.
+        Blank wins over freeze: a blanked screen is what the room sees. Returns
+        None as soon as the connection is lost, so a projector that goes quiet
+        partway through costs one timeout and is not reported as on. A reply
+        that merely fails to parse still counts as on.
         """
         power = self.get_power_status()
         if power != "ON":
             return power
-        if self.get_mute_status() == "MUTED":
+        mute = self.get_mute_status()
+        if mute is None and self.socket is None:
+            return None
+        if mute == "MUTED":
             return "BLANKED"
-        if self.get_freeze_status() == "FROZEN":
+        freeze = self.get_freeze_status()
+        if freeze is None and self.socket is None:
+            return None
+        if freeze == "FROZEN":
             return "FROZEN"
         return "ON"
 
@@ -268,9 +279,9 @@ class ProjectorController:
                     if response == response_pattern:
                         logger.log(self._info_level, f"Matched freeze status: {response_pattern} -> {status_name}")
                         return status_name
-                logger.warning(f"No matching freeze status pattern found for response: {response}")
+                logger.log(self._warning_level, f"No matching freeze status pattern found for response: {response}")
             except ImportError:
-                logger.warning("Config not available, using fallback parsing")
+                logger.log(self._warning_level, "Config not available, using fallback parsing")
                 # Fallback parsing if config not available
                 if response == "%2FREZ=0":
                     return "NORMAL"

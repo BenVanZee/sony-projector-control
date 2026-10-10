@@ -61,9 +61,10 @@ HEARTBEAT_INTERVAL_S = 2.0
 STATUS_REPORT_MARKER = 0x53
 STATUS_LIGHT_COUNT = 3
 STATUS_UNREACHABLE = 4
-# A projector stops answering for a few seconds after a power command. One
-# missed poll is shown as a transition; only a second in a row is unreachable.
+# A projector stops answering for a few seconds after a power command. Silence
+# is shown as a transition until it has lasted this long.
 STATUS_TRANSITION = 3
+STATUS_UNREACHABLE_AFTER_S = 12.0
 STATUS_CODES = {
     "OFF": 1,
     "ON": 2,
@@ -73,9 +74,11 @@ STATUS_CODES = {
     "FROZEN": 6,
 }
 STATUS_POLL_INTERVAL_S = 5.0
-# Poll less often while a projector is unreachable, so its connect timeouts
-# rarely sit in front of a button press.
-STATUS_POLL_UNREACHABLE_INTERVAL_S = 20.0
+# An unreachable projector is asked again only this often, so its connect
+# timeouts rarely sit in front of a button press. The others keep their pace.
+STATUS_UNREACHABLE_RETRY_S = 20.0
+# After a button, give a quick follow-up press the worker before the lights.
+STATUS_POLL_AFTER_BUTTON_S = 1.0
 # A button pressed during a poll waits for it. Two connect attempts at this
 # timeout bound that wait when a projector is unreachable.
 STATUS_POLL_TIMEOUT_S = 1.0
@@ -109,7 +112,9 @@ class HIDMacropadController:
         self._status_sent: Optional[bytes] = None
         self._status_sent_time = 0.0
         self._next_status_poll = 0.0
-        self._status_misses: Dict[str, int] = {}
+        self._status_silent_since: Dict[str, float] = {}
+        self._status_retry_at: Dict[str, float] = {}
+        self._status_last: Dict[str, Tuple[int, str]] = {}
 
         self.running = False
         self.device: Optional[int] = None
@@ -563,8 +568,11 @@ class HIDMacropadController:
                 self._poll_status_if_due()
                 continue
             self._execute_button(button_num)
-            # Refresh the lights as soon as the worker is idle again.
-            self._next_status_poll = 0.0
+            # Refresh the lights soon after, never later than already planned.
+            self._next_status_poll = min(
+                self._next_status_poll,
+                time.monotonic() + STATUS_POLL_AFTER_BUTTON_S,
+            )
 
     def _execute_button(self, button_num: int) -> None:
         if button_num not in self.button_functions:
@@ -712,31 +720,33 @@ class HIDMacropadController:
         self._next_status_poll = now + STATUS_POLL_INTERVAL_S
 
         ips = [p["ip"] for p in self.projectors[:STATUS_LIGHT_COUNT]]
+        due = [ip for ip in ips if now >= self._status_retry_at.get(ip, 0.0)]
         try:
-            states = self.status_manager.run_on(ips, "get_display_state")
+            states = self.status_manager.run_on(due, "get_display_state")
         except Exception as e:
             self.logger.warning("Status poll failed: %s", e)
             return
 
-        codes = []
-        labels = []
-        for projector in self.projectors[:STATUS_LIGHT_COUNT]:
-            ip = projector["ip"]
+        for ip in due:
             state = states.get(ip)
             if state in STATUS_CODES:
-                self._status_misses[ip] = 0
-                code = STATUS_CODES[state]
+                self._status_silent_since.pop(ip, None)
+                self._status_retry_at.pop(ip, None)
+                self._status_last[ip] = (STATUS_CODES[state], state)
+            elif (
+                now - self._status_silent_since.setdefault(ip, now)
+                < STATUS_UNREACHABLE_AFTER_S
+            ):
+                self._status_last[ip] = (STATUS_TRANSITION, "no reply")
             else:
-                self._status_misses[ip] = self._status_misses.get(ip, 0) + 1
-                if self._status_misses[ip] == 1:
-                    code, state = STATUS_TRANSITION, "no reply"
-                else:
-                    code, state = STATUS_UNREACHABLE, "unreachable"
-            codes.append(code)
-            labels.append(f"{projector.get('nickname', ip)}={state}")
+                self._status_retry_at[ip] = now + STATUS_UNREACHABLE_RETRY_S
+                self._status_last[ip] = (STATUS_UNREACHABLE, "unreachable")
 
-        if STATUS_UNREACHABLE in codes:
-            self._next_status_poll = now + STATUS_POLL_UNREACHABLE_INTERVAL_S
+        codes = [self._status_last[ip][0] for ip in ips]
+        labels = [
+            f"{p.get('nickname', p['ip'])}={self._status_last[p['ip']][1]}"
+            for p in self.projectors[:STATUS_LIGHT_COUNT]
+        ]
         report = bytes([STATUS_REPORT_MARKER] + codes).ljust(HID_REPORT_LEN, b"\0")
         if report != self._status_report:
             self.logger.info("Projector status: %s", ", ".join(labels))

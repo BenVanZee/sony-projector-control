@@ -11,8 +11,9 @@ from unittest import mock
 from macropad.hid_macropad_control import (
     MAX_BACKOFF_S,
     STABLE_DEVICE_PATH,
-    STATUS_POLL_UNREACHABLE_INTERVAL_S,
+    STATUS_POLL_AFTER_BUTTON_S,
     STATUS_RESEND_S,
+    STATUS_UNREACHABLE_RETRY_S,
     HIDMacropadController,
 )
 
@@ -552,33 +553,106 @@ class HIDMacropadControllerTests(unittest.TestCase):
             controller._poll_status_if_due()
         return controller._status_report[1:4]
 
-    def test_one_missed_poll_is_a_transition_and_the_second_is_unreachable(self):
+    def test_silence_is_a_transition_until_it_has_lasted_long_enough(self):
         """A projector goes quiet for seconds after a power command; no red flash."""
         controller = self.make_status_controller(["ON", "ON", None])
 
         self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, 100.0))
-        self.assertEqual(bytes([2, 2, 4]), self.poll_at(controller, 105.0))
+        self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, 105.0))
+        self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, 110.0))
+        self.assertEqual(bytes([2, 2, 4]), self.poll_at(controller, 115.0))
 
-    def test_a_reply_clears_the_missed_poll_count(self):
+    def test_extra_polls_after_buttons_do_not_hurry_the_unreachable_verdict(self):
+        """Presses force polls seconds apart; the verdict follows the clock."""
+        controller = self.make_status_controller(["ON", "ON", None])
+
+        for now in (100.0, 101.0, 102.0, 103.0):
+            controller._next_status_poll = 0.0
+            self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, now))
+
+    def test_a_reply_ends_the_silence(self):
         controller = self.make_status_controller(["ON", "ON", None])
         self.poll_at(controller, 100.0)
+        self.poll_at(controller, 110.0)
         controller.status_manager.run_on.return_value["10.0.0.3"] = "ON"
-        self.poll_at(controller, 105.0)
+        self.poll_at(controller, 115.0)
         controller.status_manager.run_on.return_value["10.0.0.3"] = None
 
-        self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, 110.0))
+        self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, 120.0))
 
-    def test_unreachable_projector_slows_the_status_poll(self):
-        """Connect timeouts must rarely sit in front of a button press."""
+    def test_unreachable_projector_is_skipped_until_its_retry_time(self):
+        """Its timeouts must rarely sit in front of a button; the others keep pace."""
         controller = self.make_status_controller(["ON", "ON", None])
-
         self.poll_at(controller, 100.0)
-        self.assertEqual(105.0, controller._next_status_poll)
-        self.poll_at(controller, 105.0)
+        self.poll_at(controller, 112.0)
+        asked = controller.status_manager.run_on
 
+        self.assertEqual(bytes([2, 2, 4]), self.poll_at(controller, 117.0))
+        self.assertEqual(["10.0.0.1", "10.0.0.2"], asked.call_args.args[0])
+
+        self.poll_at(controller, 112.0 + STATUS_UNREACHABLE_RETRY_S)
         self.assertEqual(
-            105.0 + STATUS_POLL_UNREACHABLE_INTERVAL_S, controller._next_status_poll
+            ["10.0.0.1", "10.0.0.2", "10.0.0.3"], asked.call_args.args[0]
         )
+
+    def test_button_arriving_during_a_poll_runs_after_it_not_alongside(self):
+        """Polls and buttons share the worker: one PJLink connection at a time."""
+        controller = self.make_status_controller(["ON", "ON", "ON"])
+        poll_started = threading.Event()
+        release_poll = threading.Event()
+        pressed = threading.Event()
+        order = []
+
+        def poll(*args):
+            order.append("poll start")
+            poll_started.set()
+            release_poll.wait(timeout=2)
+            order.append("poll end")
+            return {}
+
+        def press():
+            order.append("button")
+            pressed.set()
+
+        controller.status_manager.run_on.side_effect = poll
+        controller.button_functions = {1: ("first", press)}
+        controller.running = True
+        worker = threading.Thread(target=controller._action_worker)
+        worker.start()
+        self.assertTrue(poll_started.wait(timeout=2))
+        controller.enqueue_button(1)
+        self.assertFalse(pressed.wait(timeout=0.2))
+        release_poll.set()
+        self.assertTrue(pressed.wait(timeout=2))
+        controller.running = False
+        with controller._action_condition:
+            controller._action_condition.notify_all()
+        worker.join(timeout=4)
+
+        self.assertEqual(["poll start", "poll end", "button"], order[:3])
+
+    def test_poll_after_a_button_waits_so_a_follow_up_press_goes_first(self):
+        controller = self.make_status_controller(["ON", "ON", "ON"])
+        controller._next_status_poll = 500.0
+        controller.button_functions = {1: ("first", lambda: None)}
+        controller._pending_button = 1
+        controller.running = True
+
+        def stop_after_button(timeout=None):
+            controller.running = False
+
+        with (
+            mock.patch(
+                "macropad.hid_macropad_control.time.monotonic", return_value=100.0
+            ),
+            mock.patch.object(
+                controller._action_condition, "wait", side_effect=stop_after_button
+            ),
+        ):
+            controller._action_worker()
+
+        self.assertEqual(100.0 + STATUS_POLL_AFTER_BUTTON_S, controller._next_status_poll)
+        controller.status_manager.run_on.assert_not_called()
 
     def test_status_poll_runs_only_when_no_button_is_waiting(self):
         """A button action and a poll never overlap: one PJLink connection."""
@@ -598,7 +672,7 @@ class HIDMacropadControllerTests(unittest.TestCase):
         controller.running = True
         worker = threading.Thread(target=controller._action_worker)
         worker.start()
-        self.assertTrue(polled_after_button.wait(timeout=2))
+        self.assertTrue(polled_after_button.wait(timeout=4))
         controller.running = False
         with controller._action_condition:
             controller._action_condition.notify_all()

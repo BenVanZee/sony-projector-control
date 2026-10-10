@@ -75,7 +75,9 @@ class FirmwareHarness:
         with (
             mock.patch.dict(sys.modules, stubs),
             mock.patch("time.sleep"),
-            mock.patch("time.monotonic", side_effect=lambda: self.now),
+            mock.patch(
+                "time.monotonic_ns", side_effect=lambda: int(self.now * 1e9)
+            ),
             mock.patch("builtins.print"),
         ):
             try:
@@ -171,6 +173,16 @@ class FirmwareStatusLightTests(unittest.TestCase):
         firmware = FirmwareHarness([(1.0, bytes([2, 2, 2, 2, 0, 0, 0, 0]), None)]).run()
 
         self.assertEqual(bytes(36), firmware.pixel_writes[-1])
+
+    def test_two_quick_presses_both_send_after_weeks_of_uptime(self):
+        """The float clock steps in whole seconds by then; the guard must not."""
+        month = 30 * 24 * 3600.0
+        firmware = FirmwareHarness(
+            [(month, None, 0), (month + 0.2, None, 1)]
+        ).run()
+
+        presses = [r[0] for r in firmware.sent_reports if r[0]]
+        self.assertEqual([1, 2], presses)
 
     def test_pixel_failure_leaves_buttons_working(self):
         """Lights are optional; a pixel fault must never cost a button press."""
