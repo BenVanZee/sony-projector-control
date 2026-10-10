@@ -119,7 +119,7 @@ def main():
         print("✅ All existing functionality preserved")
         
         print("\nReady to use!")
-        print("1. Test connection: python3 test_rear_connection.py")
+        print("1. Test connection: python3 tools/manual/check_rear_connection.py")
         print("2. Interactive control: python3 rear_projector_control.py")
         print("3. Command-line: python3 rear_projector_cli.py status")
         print("4. Group control: python3 projector_cli.py --help")
