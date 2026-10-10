@@ -81,17 +81,27 @@ print("\nMacropad ready! Mode: %s" % ("Raw HID" if raw_hid else "disabled"))
 # ---------------------------------------------------------------------------
 REPORT_LEN = 8
 RELEASE_REPORT = bytes([0] * REPORT_LEN)
-MIN_SEND_INTERVAL = 0.05  # debounce / avoid flood
-_last_send_time = 0.0
+MIN_SEND_INTERVAL_MS = 50  # debounce / avoid flood
+_last_send_ms = -MIN_SEND_INTERVAL_MS
+
+
+def now_ms():
+    """Whole milliseconds since boot.
+
+    time.monotonic() is a 30-bit float here. After a day and a half of uptime
+    it steps in 60ms jumps, and after 24 days in whole seconds, which would
+    drop quick presses and stop the blink. The integer clock never coarsens.
+    """
+    return time.monotonic_ns() // 1000000
 
 
 def send_button(button_num):
     """Send press report then release so host sees a clean edge."""
-    global _last_send_time
-    now = time.monotonic()
-    if now - _last_send_time < MIN_SEND_INTERVAL:
+    global _last_send_ms
+    now = now_ms()
+    if now - _last_send_ms < MIN_SEND_INTERVAL_MS:
         return False
-    _last_send_time = now
+    _last_send_ms = now
 
     press = bytes([button_num] + [0] * (REPORT_LEN - 1))
     if not send_report_with_retry(raw_hid, press):
@@ -119,12 +129,12 @@ STATUS_COLORS = {
     6: (0, 0, 60),   # on and frozen: blue, as in cold
 }
 BLINK_CODE = 4
-BLINK_HALF_PERIOD_S = 0.5
+BLINK_HALF_PERIOD_MS = 500
 NO_STATUS = (0,) * STATUS_LIGHT_COUNT  # unlit until the Pi's first report
 # The Pi repeats its report every 2s. When it stops, or never starts, blink
 # every key as unreachable: the buttons cannot reach the projectors either.
 PI_SILENT = (BLINK_CODE,) * STATUS_LIGHT_COUNT
-STATUS_STALE_S = 15
+STATUS_STALE_MS = 15000
 PIXEL_COUNT = 12
 
 # Built-in neopixel_write, so nothing needs copying into CIRCUITPY/lib. Lights
@@ -140,7 +150,7 @@ except Exception as e:
     pixel_pin = None
 
 pixel_buffer = bytearray(PIXEL_COUNT * 3)
-_last_status_time = time.monotonic()
+_last_status_ms = now_ms()
 _status_codes = NO_STATUS
 _blink_on = True
 
@@ -160,22 +170,22 @@ def draw_status():
 
 
 def update_status_lights():
-    global _last_status_time, _status_codes, _blink_on
-    now = time.monotonic()
+    global _last_status_ms, _status_codes, _blink_on
+    now = now_ms()
     changed = False
     report = raw_hid.get_last_received_report()
     if report and len(report) > STATUS_LIGHT_COUNT and report[0] == STATUS_REPORT_MARKER:
         codes = tuple(report[1 : 1 + STATUS_LIGHT_COUNT])
-        _last_status_time = now
+        _last_status_ms = now
         if codes != _status_codes:
             _status_codes = codes
             changed = True
-    elif _last_status_time is not None and now - _last_status_time > STATUS_STALE_S:
+    elif _last_status_ms is not None and now - _last_status_ms > STATUS_STALE_MS:
         _status_codes = PI_SILENT
-        _last_status_time = None
+        _last_status_ms = None
         changed = True
 
-    blink_on = int(now / BLINK_HALF_PERIOD_S) % 2 == 0
+    blink_on = now // BLINK_HALF_PERIOD_MS % 2 == 0
     if blink_on != _blink_on:
         _blink_on = blink_on
         changed = changed or BLINK_CODE in _status_codes
