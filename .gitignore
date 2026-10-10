@@ -123,6 +123,12 @@ dmypy.json
 .pyre/
 
 # Project-specific
+# Site-specific config overrides (never tracked, survives auto-update)
+config_local.py
+
+# Auto-update freeze switch
+.no-update
+
 # Log files
 *.log
 logs/*.log

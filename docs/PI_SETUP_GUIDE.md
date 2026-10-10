@@ -368,27 +368,116 @@ source venv/bin/activate
 pip install --upgrade pip
 ```
 
-### Update Repository Code
+### Automatic Updates (recommended)
 
-If you installed the repository using Git, you can update to the latest version:
+The Pi can pull new commits from `origin/main` on its own. A systemd timer wakes
+up nightly at 03:00, checks whether `origin/main` has moved, and if it has:
+syncs the working tree, restarts `macropad-control.service`, and verifies the
+service came back healthy. An update that leaves the service unhealthy is rolled
+back to the previous commit automatically.
+
+The Pi has no inbound port open on the venue LAN, so this polls rather than
+receiving a webhook. **Commits only reach the Pi once they are pushed to
+`origin/main`** — committing locally is not enough.
+
+#### Install
+
+The first pull needs the service stopped. Log files and `__pycache__/*.pyc`
+used to be committed to the repository, and the running service rewrites them
+constantly — so git will refuse to pull over them. The commit that adds
+auto-update also untracks them, which permanently fixes the problem, but you
+have to get past it once:
 
 ```bash
-# Navigate to the project directory
+sudo systemctl stop macropad-control.service
 cd /opt/projector-control
-
-# Backup your current configuration (important!)
-cp config.py config.py.backup
-
-# If you cloned from GitHub, pull the latest changes
+git checkout -- .              # discard log/pyc churn from the running service
 git pull origin main
-
-# If you need to set up the remote (first time only):
-# git remote add origin https://github.com/BenVanZee/sony-projector-control.git
-# git pull origin main
-
-# Restore your configuration if it was overwritten
-# (Compare config.py.backup with config.py and merge any changes)
+./scripts/setup_auto_update.sh
+sudo systemctl start macropad-control.service
 ```
+
+From then on the working tree stays clean on its own, because nothing the
+service writes is tracked any more.
+
+The installer refuses to run if the working tree has locally modified tracked
+files, because a hard reset would erase them overnight. It prints exactly what
+to reconcile.
+
+#### Site-specific settings: `config_local.py`
+
+Do **not** edit `config.py` on the Pi. It is tracked in git and gets overwritten
+by every update. Instead put site-specific values in `config_local.py`, which is
+gitignored and never touched:
+
+```python
+# /opt/projector-control/config_local.py
+PROJECTORS = [
+    {'ip': '10.10.10.2', 'port': 4352, 'name': 'Left',  'nickname': 'left',
+     'location': 'Main Hall - Left Side',  'group': 'front'},
+    {'ip': '10.10.10.3', 'port': 4352, 'name': 'Right', 'nickname': 'right',
+     'location': 'Main Hall - Right Side', 'group': 'front'},
+    {'ip': '10.10.10.4', 'port': 4352, 'name': 'Rear',  'nickname': 'rear',
+     'location': 'Main Hall - Rear',       'group': 'rear'},
+]
+
+PROJECTOR_ALIASES = {
+    'left': '10.10.10.2', 'right': '10.10.10.3', 'rear': '10.10.10.4',
+    'l': '10.10.10.2', 'r': '10.10.10.3', 'b': '10.10.10.4',
+}
+```
+
+`config.py` imports this file at the bottom if it exists, so anything defined
+there wins. Anything you leave out falls through to the tracked defaults — which
+means PJLink protocol fixes still reach the Pi normally.
+
+#### Day-to-day
+
+```bash
+# When is the next check?
+systemctl list-timers projector-auto-update.timer
+
+# What would it do right now? (changes nothing)
+sudo /opt/projector-control/scripts/auto_update.sh --dry-run
+
+# Force a check immediately
+sudo systemctl start projector-auto-update.service
+
+# What has it been doing?
+cat /opt/projector-control/logs/auto_update.log
+sudo journalctl -u projector-auto-update.service
+```
+
+Read the log file rather than the journal when diagnosing anything that involved
+a reboot: Raspberry Pi OS runs journald in volatile mode, so the journal is
+wiped on restart. `logs/auto_update.log` persists.
+
+#### Pausing updates before an event
+
+```bash
+touch /opt/projector-control/.no-update    # freeze
+rm /opt/projector-control/.no-update       # resume
+```
+
+While that file exists the timer still fires but exits immediately.
+
+#### Turning it off entirely
+
+```bash
+sudo systemctl disable --now projector-auto-update.timer
+```
+
+### Manual Update (fallback)
+
+If auto-update is disabled or you need a change to land right now:
+
+```bash
+cd /opt/projector-control
+git pull origin main
+sudo systemctl restart macropad-control.service
+```
+
+Site settings live in `config_local.py`, so there is nothing to back up first.
 
 **If you installed manually (without Git):**
 
@@ -467,17 +556,11 @@ scp -r /path/to/sony-projector-control/* your-username@your-pi-ip:/opt/projector
 # Or use SFTP, or copy files selectively
 ```
 
-**After updating, restart any running services:**
+**After updating, restart the running service:**
 
 ```bash
-# If you have a systemd service running
-sudo systemctl restart projector-control.service
-
-# Or restart USB keypad service if using that
-sudo systemctl restart usb-keypad-control.service
-
-# Check service status
-sudo systemctl status projector-control.service
+sudo systemctl restart macropad-control.service
+sudo systemctl status macropad-control.service
 ```
 
 **Test the update:**
