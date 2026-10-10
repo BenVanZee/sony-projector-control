@@ -104,11 +104,11 @@ class FirmwareStatusLightTests(unittest.TestCase):
 
         self.assertEqual((50, 25, 0), firmware.pixel(REAR))
 
-    def test_blanked_shows_blue_and_frozen_shows_purple(self):
+    def test_blanked_shows_purple_and_frozen_shows_blue(self):
         firmware = FirmwareHarness([(1.0, status_report(5, 6, 2), None)]).run()
 
-        self.assertEqual((0, 0, 60), firmware.pixel(LEFT))
-        self.assertEqual((40, 0, 50), firmware.pixel(RIGHT))
+        self.assertEqual((40, 0, 50), firmware.pixel(LEFT))
+        self.assertEqual((0, 0, 60), firmware.pixel(RIGHT))
         self.assertEqual((0, 60, 0), firmware.pixel(REAR))
 
     def test_lights_turn_red_when_the_pi_stops_reporting(self):

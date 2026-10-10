@@ -115,8 +115,8 @@ STATUS_COLORS = {
     2: (0, 60, 0),   # on, live picture: green
     3: (50, 25, 0),  # warming or cooling: amber
     4: (60, 0, 0),   # unreachable: red
-    5: (0, 0, 60),   # on and blanked: blue
-    6: (40, 0, 50),  # on and frozen: purple
+    5: (40, 0, 50),  # on and blanked: purple
+    6: (0, 0, 60),   # on and frozen: blue, as in cold
 }
 NO_STATUS = (0,) * STATUS_LIGHT_COUNT  # unlit until the Pi's first report
 # The Pi repeats its report every 2s. When it stops, or never starts, show
