@@ -34,12 +34,9 @@ raw_hid_device = usb_hid.Device(
     out_report_lengths=(8,),   # 8 bytes output
 )
 
-# Enable both the raw HID device and keep keyboard for debugging
-# You can remove Keyboard/Mouse if you don't need them
+# Enable only the production vendor-defined raw HID interface.
 usb_hid.enable((
     raw_hid_device,
-    # Uncomment below if you want keyboard as fallback:
-    # usb_hid.Device.KEYBOARD,
 ))
 
 print("boot.py: Raw HID device enabled")

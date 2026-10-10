@@ -1,0 +1,2 @@
+# Adafruit Macropad RP2040 used by the Sony projector controller.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="239a", ATTRS{idProduct}=="8108", ATTRS{serial}=="DF641C0547692E2E", GROUP="sony-projector", MODE="0660", SYMLINK+="sony-macropad", TAG+="systemd"

@@ -48,9 +48,9 @@ PROJECTOR_GROUPS = {
 }
 
 # Network settings
-NETWORK_TIMEOUT = 10  # seconds
-RECONNECT_DELAY = 5   # seconds
-MAX_RETRIES = 3
+# Socket timeout for every PJLink connect and response read. Read by
+# projector_control.configured_timeout(); raise it if the venue switch is slow.
+NETWORK_TIMEOUT = 3  # seconds
 
 # Logging configuration
 LOG_LEVEL = 'INFO'
@@ -83,7 +83,7 @@ POWER_STATUS = {
 }
 
 MUTE_STATUS = {
-    '%1AVMT=30': 'NORMAL',
+    '%1AVMT=30': 'UNMUTED',
     '%1AVMT=31': 'MUTED'
 }
 
@@ -91,3 +91,14 @@ FREEZE_STATUS = {
     '%2FREZ=0': 'NORMAL',
     '%2FREZ=1': 'FROZEN'
 }
+
+# Site-specific overrides, loaded last so they win.
+#
+# This file is tracked and gets replaced by every install, so editing it on the
+# Pi does not survive an upgrade. Put projector addresses, aliases, and groups
+# in config_local.py instead: it is gitignored, and scripts/install_pi.sh
+# preserves it across the tree replacement.
+try:
+    from config_local import *  # noqa: F401,F403
+except ImportError:
+    pass

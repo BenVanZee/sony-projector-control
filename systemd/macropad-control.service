@@ -1,0 +1,31 @@
+[Unit]
+Description=Adafruit Macropad RP2040 Control for Sony Projectors
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=benvanzee
+Group=benvanzee
+SupplementaryGroups=sony-projector
+WorkingDirectory=/opt/projector-control
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -u /opt/projector-control/macropad/macropad_service_control.py
+Restart=on-failure
+RestartSec=2s
+# Paired with MAX_BACKOFF_S in macropad/hid_macropad_control.py: the poll loop
+# only pings the watchdog between reconnect sleeps, so this must stay comfortably
+# above twice that cap. A unit test asserts the relationship.
+WatchdogSec=30s
+TimeoutStartSec=30s
+TimeoutStopSec=10s
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

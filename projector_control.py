@@ -8,84 +8,171 @@ import socket
 import time
 import threading
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple
 import logging
-
-# Ensure logs directory exists
-os.makedirs('logs', exist_ok=True)
 
 # Module-level logger (safe to create at import time)
 logger = logging.getLogger(__name__)
 
+DEFAULT_TIMEOUT = 3.0
+
+
+def configured_timeout(default: float = DEFAULT_TIMEOUT) -> float:
+    """Read NETWORK_TIMEOUT from config, falling back to the built-in default."""
+    try:
+        from config import NETWORK_TIMEOUT
+
+        return float(NETWORK_TIMEOUT)
+    except (ImportError, TypeError, ValueError):
+        return default
+
+
 class ProjectorController:
     """Controls Sony VPL-PHZ61 projectors via PJLink protocol"""
-    
-    def __init__(self, ip: str, port: int = 4352, timeout: int = 10):
+
+    def __init__(
+        self,
+        ip: str,
+        port: int = 4352,
+        timeout: Optional[float] = None,
+        quiet: bool = False,
+    ):
+        if timeout is None:
+            timeout = configured_timeout()
         self.ip = ip
         self.port = port
         self.timeout = timeout
+        # Routine status polls run every few seconds; logging each connect and
+        # reply at INFO or ERROR would flood the journal.
+        self._info_level = logging.DEBUG if quiet else logging.INFO
+        self._warning_level = logging.DEBUG if quiet else logging.WARNING
+        self._connect_error_level = logging.DEBUG if quiet else logging.ERROR
         self.socket = None
         self.lock = threading.Lock()
+        self._recv_buffer = bytearray()
         
     def __enter__(self):
-        self.connect()
-        return self
+        for _ in range(2):
+            if self.connect():
+                return self
+        raise ConnectionError(f"Unable to connect to projector {self.ip}")
         
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
         
     def connect(self) -> bool:
         """Establish connection to projector"""
-        try:
-            with self.lock:
-                if self.socket:
-                    self.socket.close()
-                
-                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.socket.settimeout(self.timeout)
-                self.socket.connect((self.ip, self.port))
-                
-                # Read initial connection message
-                initial_msg = self.socket.recv(1024).decode('ascii', errors='ignore')
-                logger.info(f"Connected to {self.ip}: {initial_msg.strip()}")
+        with self.lock:
+            self._disconnect_unlocked()
+            candidate = None
+            try:
+                candidate = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                candidate.settimeout(self.timeout)
+                candidate.connect((self.ip, self.port))
+                self.socket = candidate
+                self._recv_buffer.clear()
+                greeting = self._read_line_unlocked()
+                if greeting == "PJLINK 1" or greeting.startswith("PJLINK 1 "):
+                    raise ConnectionError("PJLink authentication is required")
+                if greeting != "PJLINK 0":
+                    raise ConnectionError(f"Invalid PJLink greeting: {greeting!r}")
+                logger.log(self._info_level, f"Connected to {self.ip}: {greeting}")
                 return True
-                
-        except Exception as e:
-            logger.error(f"Failed to connect to {self.ip}: {e}")
-            return False
+            except Exception as e:
+                if candidate is not None:
+                    try:
+                        candidate.close()
+                    except OSError:
+                        pass
+                self.socket = None
+                self._recv_buffer.clear()
+                logger.log(
+                    self._connect_error_level, f"Failed to connect to {self.ip}: {e}"
+                )
+                return False
+
+    def _read_line_unlocked(self) -> str:
+        """Read one complete PJLink CR-terminated line with the lock held."""
+        if self.socket is None:
+            raise ConnectionError("Projector socket is not connected")
+
+        while b"\r" not in self._recv_buffer:
+            chunk = self.socket.recv(1024)
+            if not chunk:
+                raise ConnectionError("Projector closed the connection")
+            self._recv_buffer.extend(chunk)
+            if len(self._recv_buffer) > 4096:
+                raise ConnectionError("PJLink response exceeded 4096 bytes")
+
+        line, _, remainder = self._recv_buffer.partition(b"\r")
+        self._recv_buffer = bytearray(remainder)
+        # Strip so a CRLF-terminated device does not leave a leading newline on
+        # the next line and break every equality comparison after the greeting.
+        return line.decode("ascii", errors="strict").strip()
+
+    def _disconnect_unlocked(self):
+        if self.socket:
+            try:
+                self.socket.close()
+            except OSError:
+                pass
+        self.socket = None
+        self._recv_buffer.clear()
             
     def disconnect(self):
         """Close connection to projector"""
         with self.lock:
-            if self.socket:
-                try:
-                    self.socket.close()
-                except:
-                    pass
-                self.socket = None
+            self._disconnect_unlocked()
                 
     def send_command(self, command: str) -> Optional[str]:
-        """Send PJLink command and return response"""
-        if not self.socket:
-            if not self.connect():
-                return None
-                
-        try:
-            with self.lock:
-                # Send command
-                self.socket.sendall(command.encode('ascii'))
-                logger.debug(f"Sent to {self.ip}: {command.strip()}")
-                
-                # Receive response
-                response = self.socket.recv(1024).decode('ascii', errors='ignore')
-                logger.debug(f"Received from {self.ip}: {response.strip()}")
-                return response.strip()
-                
-        except Exception as e:
-            logger.error(f"Command failed on {self.ip}: {e}")
-            # Try to reconnect
-            self.connect()
-            return None
+        """Send PJLink command and return response.
+
+        A failed connect is always safe to retry: nothing reached the
+        projector. A failure *after* the bytes went out is only safe to retry
+        for a query. Re-sending a state change whose response was lost gets
+        ERR3 back from a projector that already applied it, which reports a
+        success as a failure and invites the operator to press again.
+        """
+        is_query = command.rstrip("\r").endswith("?")
+        max_transmits = 2 if is_query else 1
+        connect_failures = 0
+        transmits = 0
+
+        # Two independent budgets. Sharing one counter meant a query that spent
+        # its first attempt on a failed connect never got its retry.
+        while connect_failures < 2 and transmits < max_transmits:
+            if not self.socket and not self.connect():
+                connect_failures += 1
+                continue
+
+            # Counted before the write, not after: sendall can put bytes on the
+            # wire and then raise. Treating those as delivered costs a retry;
+            # treating them as undelivered re-sends a state change.
+            transmits += 1
+            try:
+                with self.lock:
+                    if self.socket is None:
+                        raise ConnectionError("Projector socket is not connected")
+                    self.socket.sendall(command.encode("ascii"))
+                    logger.debug(f"Sent to {self.ip}: {command.strip()}")
+                    response = self._read_line_unlocked()
+                    logger.debug(f"Received from {self.ip}: {response}")
+                    return response
+            except Exception as e:
+                logger.log(
+                    self._warning_level,
+                    "Transmit %s failed on %s: %s", transmits, self.ip, e,
+                )
+                self.disconnect()
+                if not is_query:
+                    logger.warning(
+                        "Not resending state command %s to %s; it may have applied",
+                        command.strip(),
+                        self.ip,
+                    )
+
+        return None
             
     def get_power_status(self) -> Optional[str]:
         """Get projector power status"""
@@ -117,6 +204,29 @@ class ProjectorController:
                 return "MUTED"
         return None
         
+    def get_display_state(self) -> Optional[str]:
+        """Power state, refined to BLANKED or FROZEN while the projector is on.
+
+        Blank wins over freeze: a blanked screen is what the room sees. Returns
+        None as soon as the connection is lost, so a projector that goes quiet
+        partway through costs one timeout and is not reported as on. A reply
+        that merely fails to parse still counts as on.
+        """
+        power = self.get_power_status()
+        if power != "ON":
+            return power
+        mute = self.get_mute_status()
+        if mute is None and self.socket is None:
+            return None
+        if mute == "MUTED":
+            return "BLANKED"
+        freeze = self.get_freeze_status()
+        if freeze is None and self.socket is None:
+            return None
+        if freeze == "FROZEN":
+            return "FROZEN"
+        return "ON"
+
     def set_mute(self, mute: bool) -> bool:
         """Mute/unmute audio and video"""
         command = "%1AVMT 31\r" if mute else "%1AVMT 30\r"
@@ -157,21 +267,21 @@ class ProjectorController:
     def get_freeze_status(self) -> Optional[str]:
         """Get freeze status using correct PJLink FREZ command"""
         response = self.send_command("%2FREZ ?\r")
-        logger.info(f"Freeze status response from {self.ip}: {response}")
+        logger.log(self._info_level, f"Freeze status response from {self.ip}: {response}")
         
         if response:
             # Import config for status mapping
             try:
                 from config import FREEZE_STATUS
-                logger.info(f"Available freeze status patterns: {FREEZE_STATUS}")
+                logger.log(self._info_level, f"Available freeze status patterns: {FREEZE_STATUS}")
                 # Reverse lookup to find the status
                 for response_pattern, status_name in FREEZE_STATUS.items():
                     if response == response_pattern:
-                        logger.info(f"Matched freeze status: {response_pattern} -> {status_name}")
+                        logger.log(self._info_level, f"Matched freeze status: {response_pattern} -> {status_name}")
                         return status_name
-                logger.warning(f"No matching freeze status pattern found for response: {response}")
+                logger.log(self._warning_level, f"No matching freeze status pattern found for response: {response}")
             except ImportError:
-                logger.warning("Config not available, using fallback parsing")
+                logger.log(self._warning_level, "Config not available, using fallback parsing")
                 # Fallback parsing if config not available
                 if response == "%2FREZ=0":
                     return "NORMAL"
@@ -205,121 +315,162 @@ class ProjectorController:
         if response and response.startswith("%1LAMP="):
             try:
                 # Parse lamp hours from response
-                parts = response.split()
-                if len(parts) >= 2:
-                    return int(parts[1])
+                payload = response.split("=", 1)[1]
+                return int(payload.split()[0])
             except (ValueError, IndexError):
                 pass
         return None
 
 class ProjectorManager:
     """Manages multiple projectors"""
-    
-    def __init__(self, projectors: List[Tuple[str, int]], aliases: dict = None):
+
+    def __init__(
+        self,
+        projectors: List[Tuple[str, int]],
+        aliases: dict = None,
+        timeout: Optional[float] = None,
+        quiet: bool = False,
+    ):
         self.controllers = {
-            ip: ProjectorController(ip, port) 
+            ip: ProjectorController(ip, port, timeout, quiet)
             for ip, port in projectors
         }
         self.aliases = aliases or {}
-        self.nickname_to_ip = {nickname: ip for ip, nickname in self.aliases.items()}
-        
+        self.nickname_to_ip = {
+            nickname.lower(): ip for nickname, ip in self.aliases.items()
+        }
+
     def get_projector_by_nickname(self, nickname: str) -> Optional[str]:
         """Get projector IP by nickname"""
         return self.nickname_to_ip.get(nickname.lower())
-        
+
     def get_nickname_by_ip(self, ip: str) -> Optional[str]:
         """Get nickname by projector IP"""
         for nickname, projector_ip in self.nickname_to_ip.items():
             if projector_ip == ip:
                 return nickname
         return None
-        
+
+    def _run_parallel(self, method_name: str, *args) -> Dict[str, object]:
+        """Run one controller method per projector with bounded concurrency."""
+        return self.run_on(list(self.controllers), method_name, *args)
+
+    def run_on(
+        self, ips: List[str], method_name: str, *args
+    ) -> Dict[str, object]:
+        """Run a controller method concurrently on the selected projector IPs."""
+        selected = {
+            ip: self.controllers[ip] for ip in dict.fromkeys(ips) if ip in self.controllers
+        }
+        if not selected:
+            return {}
+
+        def invoke(controller):
+            try:
+                return getattr(controller, method_name)(*args)
+            finally:
+                disconnect = getattr(controller, "disconnect", None)
+                if disconnect is not None:
+                    disconnect()
+
+        unordered = {}
+        with ThreadPoolExecutor(max_workers=len(selected)) as executor:
+            future_to_ip = {
+                executor.submit(invoke, controller): ip
+                for ip, controller in selected.items()
+            }
+            for future in as_completed(future_to_ip):
+                ip = future_to_ip[future]
+                try:
+                    unordered[ip] = future.result()
+                except Exception as e:
+                    logger.error("Failed to run %s on %s: %s", method_name, ip, e)
+                    unordered[ip] = None
+        return {ip: unordered.get(ip) for ip in selected}
+
     def get_all_status(self) -> Dict[str, Dict]:
         """Get status of all projectors"""
-        status = {}
-        for ip, controller in self.controllers.items():
+        if not self.controllers:
+            return {}
+
+        def read_status(controller):
             try:
-                with controller:
-                    power = controller.get_power_status()
-                    mute = controller.get_mute_status()
-                    freeze = controller.get_freeze_status()
-                    lamp_hours = controller.get_lamp_hours()
-                    
-                    status[ip] = {
-                        'power': power,
-                        'mute': mute,
-                        'freeze': freeze,
-                        'lamp_hours': lamp_hours,
-                        'online': power is not None
-                    }
-            except Exception as e:
-                logger.error(f"Failed to get status from {ip}: {e}")
-                status[ip] = {
-                    'power': None,
-                    'mute': None,
-                    'freeze': None,
-                    'lamp_hours': None,
-                    'online': False
+                power = controller.get_power_status()
+                reachable = controller.socket is not None
+                return {
+                    "power": power,
+                    "mute": controller.get_mute_status(),
+                    "freeze": controller.get_freeze_status(),
+                    "lamp_hours": controller.get_lamp_hours(),
+                    "online": reachable,
                 }
-        return status
-        
+            finally:
+                controller.disconnect()
+
+        unordered = {}
+        with ThreadPoolExecutor(max_workers=len(self.controllers)) as executor:
+            future_to_ip = {
+                executor.submit(read_status, controller): ip
+                for ip, controller in self.controllers.items()
+            }
+            for future in as_completed(future_to_ip):
+                ip = future_to_ip[future]
+                try:
+                    unordered[ip] = future.result()
+                except Exception as e:
+                    logger.error(f"Failed to get status from {ip}: {e}")
+                    unordered[ip] = {
+                        "power": None,
+                        "mute": None,
+                        "freeze": None,
+                        "lamp_hours": None,
+                        "online": False,
+                    }
+        return {ip: unordered[ip] for ip in self.controllers}
+
     def power_all(self, power_on: bool) -> Dict[str, bool]:
         """Turn all projectors on/off"""
-        results = {}
-        for ip, controller in self.controllers.items():
-            try:
-                with controller:
-                    success = controller.set_power(power_on)
-                    results[ip] = success
-                    logger.info(f"{ip}: Power {'ON' if power_on else 'OFF'} {'successful' if success else 'failed'}")
-            except Exception as e:
-                logger.error(f"Failed to control power on {ip}: {e}")
-                results[ip] = False
+        raw_results = self._run_parallel("set_power", power_on)
+        results = {ip: bool(result) for ip, result in raw_results.items()}
+        for ip, success in results.items():
+            logger.info(
+                f"{ip}: Power {'ON' if power_on else 'OFF'} "
+                f"{'successful' if success else 'failed'}"
+            )
         return results
-        
+
     def mute_all(self, mute: bool) -> Dict[str, bool]:
         """Mute/unmute all projectors"""
-        results = {}
-        for ip, controller in self.controllers.items():
-            try:
-                with controller:
-                    success = controller.set_mute(mute)
-                    results[ip] = success
-                    logger.info(f"{ip}: {'Mute' if mute else 'Unmute'} {'successful' if success else 'failed'}")
-            except Exception as e:
-                logger.error(f"Failed to control mute on {ip}: {e}")
-                results[ip] = False
+        raw_results = self._run_parallel("set_mute", mute)
+        results = {ip: bool(result) for ip, result in raw_results.items()}
+        for ip, success in results.items():
+            logger.info(
+                f"{ip}: {'Mute' if mute else 'Unmute'} "
+                f"{'successful' if success else 'failed'}"
+            )
         return results
-        
+
     def free_all_screens(self) -> Dict[str, bool]:
         """Free all screens (unmute/clear blanking)"""
-        results = {}
-        for ip, controller in self.controllers.items():
-            try:
-                with controller:
-                    success = controller.free_screen()
-                    results[ip] = success
-                    logger.info(f"{ip}: Free screen {'successful' if success else 'failed'}")
-            except Exception as e:
-                logger.error(f"Failed to free screen on {ip}: {e}")
-                results[ip] = False
+        raw_results = self._run_parallel("free_screen")
+        results = {ip: bool(result) for ip, result in raw_results.items()}
+        for ip, success in results.items():
+            logger.info(
+                f"{ip}: Free screen {'successful' if success else 'failed'}"
+            )
         return results
-        
+
     def freeze_all_screens(self, freeze: bool) -> Dict[str, bool]:
         """Freeze/unfreeze all screens"""
-        results = {}
-        for ip, controller in self.controllers.items():
-            try:
-                with controller:
-                    success = controller.freeze_screen(freeze)
-                    results[ip] = success
-                    action = "Freeze" if freeze else "Unfreeze"
-                    logger.info(f"{ip}: {action} screen {'successful' if success else 'failed'}")
-            except Exception as e:
-                logger.error(f"Failed to freeze screen on {ip}: {e}")
-                results[ip] = False
+        raw_results = self._run_parallel("freeze_screen", freeze)
+        results = {ip: bool(result) for ip, result in raw_results.items()}
+        action = "Freeze" if freeze else "Unfreeze"
+        for ip, success in results.items():
+            logger.info(
+                f"{ip}: {action} screen {'successful' if success else 'failed'}"
+            )
         return results
-        
+
     def close(self):
         """Close all connections"""
         for controller in self.controllers.values():
@@ -328,6 +479,7 @@ class ProjectorManager:
 def main():
     """Main application loop"""
     # Configure logging only when run as script
+    os.makedirs('logs', exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',

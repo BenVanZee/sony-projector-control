@@ -123,6 +123,9 @@ dmypy.json
 .pyre/
 
 # Project-specific
+# Site overrides for the deployed Pi; config.py imports this if present
+config_local.py
+
 # Log files
 *.log
 logs/*.log
@@ -144,3 +147,7 @@ logs/*.log
 ehthumbs.db
 Thumbs.db
 
+
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
