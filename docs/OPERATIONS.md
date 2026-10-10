@@ -23,16 +23,17 @@ The lights under keys 10, 11 and 12 show what the Left, Right and Rear projector
 | Green | On, live picture |
 | Purple | On, blanked |
 | Blue | On, frozen |
-| Unlit | Off |
-| Amber | Warming up or cooling down |
-| Red | The Pi cannot reach the projector |
-| All three red | Every projector is unreachable, or the Macropad has heard nothing from the Pi for 15 seconds |
+| Dim red, steady | Off (standby) |
+| Yellow | Warming up, cooling down, or it just missed one check |
+| Bright red, blinking | The Pi cannot reach the projector |
+| All three blinking | Every projector is unreachable, or the Macropad has heard nothing from the Pi for 15 seconds |
+| Unlit | The Macropad has just started and is waiting for the Pi |
 
-The Pi checks all three projectors every 5 seconds, and again right after each button press. While any projector is unreachable it checks every 20 seconds, so a red light can take up to 20 seconds to clear after the projector comes back. Pressing any button forces an immediate check.
+The Pi checks all three projectors every 5 seconds, and again right after each button press. A projector stops answering for a few seconds after a power command, so one missed check shows yellow. A second miss in a row, 5 seconds later, turns it to blinking red. While any projector is unreachable the Pi checks every 20 seconds, so a blinking light can take up to 20 seconds to clear after the projector comes back. Pressing any button forces an immediate check.
 
-One red light on a projector that still answers ping usually means PJLink is switched off on that projector. A firmware upgrade resets it, which happened to both front projectors on 2026-10-10. Re-enable PJLink with authentication off and the light clears within 20 seconds.
+One blinking red light on a projector that still answers ping usually means PJLink is switched off on that projector. A firmware upgrade resets it, which happened to both front projectors on 2026-10-10. Re-enable PJLink with authentication off and the light clears within 20 seconds.
 
-All three red with the projectors known to be fine means the Pi service is stopped or the Pi is running a service from before the lights were added. Check `systemctl status macropad-control.service`. A projector that is both blanked and frozen shows purple. Blank and freeze set from the Sony remote show up too, since the lights come from the projector's own answers. Each status change is logged once as `Projector status: left=ON, right=BLANKED, rear=unreachable`.
+All three blinking with the projectors known to be fine means the Pi service is stopped or the Pi is running a service from before the lights were added. Check `systemctl status macropad-control.service`. A projector that is both blanked and frozen shows purple. Blank and freeze set from the Sony remote show up too, since the lights come from the projector's own answers. Each status change is logged once as `Projector status: left=ON, right=BLANKED, rear=unreachable`. A single missed check is logged as `no reply`.
 
 Checks and button presses take turns on the Pi, because each projector accepts one connection at a time. A button pressed during a check waits for it to finish. That is a few hundredths of a second normally and up to 2 seconds when a projector is unreachable.
 

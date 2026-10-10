@@ -111,18 +111,19 @@ STATUS_REPORT_MARKER = 0x53
 STATUS_FIRST_KEY = 9  # 0-indexed pixel under key 10
 STATUS_LIGHT_COUNT = 3
 STATUS_COLORS = {
-    1: (0, 0, 0),    # off: unlit
+    1: (12, 0, 0),   # off: dim red, like the projector's own standby light
     2: (0, 60, 0),   # on, live picture: green
-    3: (50, 25, 0),  # warming or cooling: amber
-    4: (60, 0, 0),   # unreachable: red
+    3: (50, 40, 0),  # warming, cooling or just missed a check: yellow
+    4: (80, 0, 0),   # unreachable: bright red, blinking
     5: (40, 0, 50),  # on and blanked: purple
     6: (0, 0, 60),   # on and frozen: blue, as in cold
 }
+BLINK_CODE = 4
+BLINK_HALF_PERIOD_S = 0.5
 NO_STATUS = (0,) * STATUS_LIGHT_COUNT  # unlit until the Pi's first report
-# The Pi repeats its report every 2s. When it stops, or never starts, show
-# every projector as unreachable: the buttons cannot reach them either, and
-# an unlit row would look the same as three projectors that are off.
-PI_SILENT = (4,) * STATUS_LIGHT_COUNT
+# The Pi repeats its report every 2s. When it stops, or never starts, blink
+# every key as unreachable: the buttons cannot reach the projectors either.
+PI_SILENT = (BLINK_CODE,) * STATUS_LIGHT_COUNT
 STATUS_STALE_S = 15
 PIXEL_COUNT = 12
 
@@ -140,11 +141,16 @@ except Exception as e:
 
 pixel_buffer = bytearray(PIXEL_COUNT * 3)
 _last_status_time = time.monotonic()
+_status_codes = NO_STATUS
+_blink_on = True
 
 
-def show_status(codes):
+def draw_status():
     for offset in range(STATUS_LIGHT_COUNT):
-        red, green, blue = STATUS_COLORS.get(codes[offset], (0, 0, 0))
+        code = _status_codes[offset]
+        red, green, blue = STATUS_COLORS.get(code, (0, 0, 0))
+        if code == BLINK_CODE and not _blink_on:
+            red, green, blue = 0, 0, 0
         start = (STATUS_FIRST_KEY + offset) * 3
         # The Macropad's pixels take green first.
         pixel_buffer[start] = green
@@ -154,20 +160,32 @@ def show_status(codes):
 
 
 def update_status_lights():
-    global _last_status_time
+    global _last_status_time, _status_codes, _blink_on
     now = time.monotonic()
+    changed = False
     report = raw_hid.get_last_received_report()
     if report and len(report) > STATUS_LIGHT_COUNT and report[0] == STATUS_REPORT_MARKER:
-        show_status(report[1 : 1 + STATUS_LIGHT_COUNT])
+        codes = tuple(report[1 : 1 + STATUS_LIGHT_COUNT])
         _last_status_time = now
+        if codes != _status_codes:
+            _status_codes = codes
+            changed = True
     elif _last_status_time is not None and now - _last_status_time > STATUS_STALE_S:
-        show_status(PI_SILENT)
+        _status_codes = PI_SILENT
         _last_status_time = None
+        changed = True
+
+    blink_on = int(now / BLINK_HALF_PERIOD_S) % 2 == 0
+    if blink_on != _blink_on:
+        _blink_on = blink_on
+        changed = changed or BLINK_CODE in _status_codes
+    if changed:
+        draw_status()
 
 
 if pixel_pin is not None:
     try:
-        show_status(NO_STATUS)
+        draw_status()
     except Exception as e:
         print("Status lights disabled: %s" % e)
         pixel_pin = None

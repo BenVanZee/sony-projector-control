@@ -91,18 +91,42 @@ def status_report(left, right, rear):
 
 class FirmwareStatusLightTests(unittest.TestCase):
     def test_status_report_lights_the_bottom_row_only(self):
-        """On is green, off is unlit, unreachable is red; other keys stay dark."""
+        """On is green, off is dim red, unreachable is bright red; other keys stay dark."""
         firmware = FirmwareHarness([(1.0, status_report(2, 1, 4), None)]).run()
 
         self.assertEqual((0, 60, 0), firmware.pixel(LEFT))
-        self.assertEqual((0, 0, 0), firmware.pixel(RIGHT))
-        self.assertEqual((60, 0, 0), firmware.pixel(REAR))
+        self.assertEqual((12, 0, 0), firmware.pixel(RIGHT))
+        self.assertEqual((80, 0, 0), firmware.pixel(REAR))
         self.assertEqual(bytes(LEFT * 3), firmware.pixel_writes[-1][: LEFT * 3])
 
-    def test_warming_and_cooling_show_amber(self):
+    def test_warming_and_cooling_show_yellow(self):
         firmware = FirmwareHarness([(1.0, status_report(3, 3, 3), None)]).run()
 
-        self.assertEqual((50, 25, 0), firmware.pixel(REAR))
+        self.assertEqual((50, 40, 0), firmware.pixel(REAR))
+
+    def test_unreachable_blinks_while_off_stays_steady(self):
+        """Off and unreachable are both red; only the problem blinks."""
+        firmware = FirmwareHarness(
+            [(1.0, status_report(1, 4, 2), None), (1.5, None, None)]
+        ).run()
+
+        self.assertEqual((12, 0, 0), firmware.pixel(LEFT))
+        self.assertEqual((0, 0, 0), firmware.pixel(RIGHT))
+        self.assertEqual((0, 60, 0), firmware.pixel(REAR))
+
+    def test_blink_comes_back_on(self):
+        firmware = FirmwareHarness(
+            [(1.0, status_report(1, 4, 2), None), (1.5, None, None), (2.0, None, None)]
+        ).run()
+
+        self.assertEqual((80, 0, 0), firmware.pixel(RIGHT))
+
+    def test_steady_lights_are_not_redrawn_on_every_blink_tick(self):
+        firmware = FirmwareHarness(
+            [(1.0, status_report(2, 2, 1), None), (1.5, None, None), (2.0, None, None)]
+        ).run()
+
+        self.assertEqual(2, len(firmware.pixel_writes))  # startup clear + one report
 
     def test_blanked_shows_purple_and_frozen_shows_blue(self):
         firmware = FirmwareHarness([(1.0, status_report(5, 6, 2), None)]).run()
@@ -111,7 +135,7 @@ class FirmwareStatusLightTests(unittest.TestCase):
         self.assertEqual((0, 0, 60), firmware.pixel(RIGHT))
         self.assertEqual((0, 60, 0), firmware.pixel(REAR))
 
-    def test_lights_turn_red_when_the_pi_stops_reporting(self):
+    def test_lights_blink_red_when_the_pi_stops_reporting(self):
         """A stopped service must not leave a stale green light on."""
         firmware = FirmwareHarness(
             [
@@ -122,18 +146,19 @@ class FirmwareStatusLightTests(unittest.TestCase):
         ).run()
 
         for key in (LEFT, RIGHT, REAR):
-            self.assertEqual((60, 0, 0), firmware.pixel(key))
+            self.assertEqual((80, 0, 0), firmware.pixel(key))
 
-    def test_lights_turn_red_when_the_pi_never_reports(self):
+    def test_lights_blink_red_when_the_pi_never_reports(self):
         """Three projectors that are off and a dead service must not look alike."""
         firmware = FirmwareHarness([(1.0, None, None), (16.0, None, None)]).run()
 
-        self.assertEqual((60, 0, 0), firmware.pixel(REAR))
+        self.assertEqual((80, 0, 0), firmware.pixel(REAR))
 
-    def test_all_projectors_off_leaves_the_row_unlit(self):
+    def test_all_projectors_off_shows_three_dim_red_keys(self):
         firmware = FirmwareHarness([(1.0, status_report(1, 1, 1), None)]).run()
 
-        self.assertEqual(bytes(36), firmware.pixel_writes[-1])
+        for key in (LEFT, RIGHT, REAR):
+            self.assertEqual((12, 0, 0), firmware.pixel(key))
 
     def test_lights_stay_on_between_reports(self):
         firmware = FirmwareHarness(

@@ -61,6 +61,9 @@ HEARTBEAT_INTERVAL_S = 2.0
 STATUS_REPORT_MARKER = 0x53
 STATUS_LIGHT_COUNT = 3
 STATUS_UNREACHABLE = 4
+# A projector stops answering for a few seconds after a power command. One
+# missed poll is shown as a transition; only a second in a row is unreachable.
+STATUS_TRANSITION = 3
 STATUS_CODES = {
     "OFF": 1,
     "ON": 2,
@@ -106,6 +109,7 @@ class HIDMacropadController:
         self._status_sent: Optional[bytes] = None
         self._status_sent_time = 0.0
         self._next_status_poll = 0.0
+        self._status_misses: Dict[str, int] = {}
 
         self.running = False
         self.device: Optional[int] = None
@@ -714,18 +718,28 @@ class HIDMacropadController:
             self.logger.warning("Status poll failed: %s", e)
             return
 
-        codes = [
-            STATUS_CODES.get(states.get(ip), STATUS_UNREACHABLE) for ip in ips
-        ]
+        codes = []
+        labels = []
+        for projector in self.projectors[:STATUS_LIGHT_COUNT]:
+            ip = projector["ip"]
+            state = states.get(ip)
+            if state in STATUS_CODES:
+                self._status_misses[ip] = 0
+                code = STATUS_CODES[state]
+            else:
+                self._status_misses[ip] = self._status_misses.get(ip, 0) + 1
+                if self._status_misses[ip] == 1:
+                    code, state = STATUS_TRANSITION, "no reply"
+                else:
+                    code, state = STATUS_UNREACHABLE, "unreachable"
+            codes.append(code)
+            labels.append(f"{projector.get('nickname', ip)}={state}")
+
         if STATUS_UNREACHABLE in codes:
             self._next_status_poll = now + STATUS_POLL_UNREACHABLE_INTERVAL_S
         report = bytes([STATUS_REPORT_MARKER] + codes).ljust(HID_REPORT_LEN, b"\0")
         if report != self._status_report:
-            summary = ", ".join(
-                f"{p.get('nickname', p['ip'])}={states.get(p['ip']) or 'unreachable'}"
-                for p in self.projectors[:STATUS_LIGHT_COUNT]
-            )
-            self.logger.info("Projector status: %s", summary)
+            self.logger.info("Projector status: %s", ", ".join(labels))
         self._status_report = report
 
     def _send_status_report(self) -> None:

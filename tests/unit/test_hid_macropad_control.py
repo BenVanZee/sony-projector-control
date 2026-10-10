@@ -515,13 +515,13 @@ class HIDMacropadControllerTests(unittest.TestCase):
         return controller
 
     def test_status_poll_stages_one_code_per_projector_in_config_order(self):
-        """Keys 10-12 follow Left, Right, Rear; no answer means unreachable."""
-        controller = self.make_status_controller(["ON", "WARMING", None])
+        """Keys 10-12 follow Left, Right, Rear in config order."""
+        controller = self.make_status_controller(["ON", "WARMING", "OFF"])
 
         controller._poll_status_if_due()
 
         self.assertEqual(
-            bytes([0x53, 2, 3, 4, 0, 0, 0, 0]), controller._status_report
+            bytes([0x53, 2, 3, 1, 0, 0, 0, 0]), controller._status_report
         )
         controller.status_manager.run_on.assert_called_once_with(
             ["10.0.0.1", "10.0.0.2", "10.0.0.3"], "get_display_state"
@@ -545,16 +545,40 @@ class HIDMacropadControllerTests(unittest.TestCase):
 
         self.assertEqual(1, controller.status_manager.run_on.call_count)
 
+    def poll_at(self, controller, now):
+        with mock.patch(
+            "macropad.hid_macropad_control.time.monotonic", return_value=now
+        ):
+            controller._poll_status_if_due()
+        return controller._status_report[1:4]
+
+    def test_one_missed_poll_is_a_transition_and_the_second_is_unreachable(self):
+        """A projector goes quiet for seconds after a power command; no red flash."""
+        controller = self.make_status_controller(["ON", "ON", None])
+
+        self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, 100.0))
+        self.assertEqual(bytes([2, 2, 4]), self.poll_at(controller, 105.0))
+
+    def test_a_reply_clears_the_missed_poll_count(self):
+        controller = self.make_status_controller(["ON", "ON", None])
+        self.poll_at(controller, 100.0)
+        controller.status_manager.run_on.return_value["10.0.0.3"] = "ON"
+        self.poll_at(controller, 105.0)
+        controller.status_manager.run_on.return_value["10.0.0.3"] = None
+
+        self.assertEqual(bytes([2, 2, 3]), self.poll_at(controller, 110.0))
+
     def test_unreachable_projector_slows_the_status_poll(self):
         """Connect timeouts must rarely sit in front of a button press."""
         controller = self.make_status_controller(["ON", "ON", None])
 
-        with mock.patch(
-            "macropad.hid_macropad_control.time.monotonic", return_value=100.0
-        ):
-            controller._poll_status_if_due()
+        self.poll_at(controller, 100.0)
+        self.assertEqual(105.0, controller._next_status_poll)
+        self.poll_at(controller, 105.0)
 
-        self.assertEqual(100.0 + STATUS_POLL_UNREACHABLE_INTERVAL_S, controller._next_status_poll)
+        self.assertEqual(
+            105.0 + STATUS_POLL_UNREACHABLE_INTERVAL_S, controller._next_status_poll
+        )
 
     def test_status_poll_runs_only_when_no_button_is_waiting(self):
         """A button action and a poll never overlap: one PJLink connection."""
