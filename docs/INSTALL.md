@@ -69,6 +69,40 @@ cp macropad/boot.py macropad/code.py macropad/hid_send.py \
 
 Reset the Macropad after `boot.py` is copied. The wire format remains compatible with both host versions: byte 0 is button 1–12 and bytes 1–7 are zero.
 
+### Updating firmware from the Pi
+
+The installer backs up the Macropad's firmware when given `--firmware-mount`, and copies the new firmware to `/opt/projector-control/firmware/`. It does not write to the Macropad. The Macropad's drive appears on the Pi as `/dev/sda1` (label `CIRCUITPY`), so the copy can be done over SSH without unplugging anything:
+
+```bash
+sudo mkdir -p /mnt/circuitpy
+sudo mount -o uid=$(id -u),gid=$(id -g),flush /dev/sda1 /mnt/circuitpy
+cp macropad/hid_send.py macropad/code.py /mnt/circuitpy/
+sync
+sudo umount /mnt/circuitpy
+```
+
+The Macropad reloads `code.py` by itself when the files change. `boot.py` changes need a full reset.
+
+If `mount` warns `source write-protected, mounted read-only`, the Macropad started before the Pi finished enumerating it, which makes CircuitPython keep the drive for itself. `cat /sys/block/sda/ro` prints `1` in that state. Unmount, then reset the Macropad while the Pi is running. This sends the reset through its serial console:
+
+```bash
+sudo python3 -c "
+import os, time
+fd = os.open('/dev/ttyACM0', os.O_RDWR | os.O_NOCTTY)
+os.write(fd, b'\x03'); time.sleep(1.5)
+os.write(fd, b'\r\n'); time.sleep(1.5)
+os.write(fd, b'import microcontroller; microcontroller.reset()\r\n')
+"
+```
+
+The service logs one disconnect and reconnects within about five seconds. `sudo dmesg | grep 'Write Protect' | tail -1` should then say `off`.
+
+The same console shows what the firmware prints, including `Status lights disabled: ...` if the key lights failed to start:
+
+```bash
+sudo timeout 5 cat /dev/ttyACM0
+```
+
 ## Rollback
 
 From the same copied checkout used for installation:
