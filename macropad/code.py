@@ -111,16 +111,18 @@ STATUS_REPORT_MARKER = 0x53
 STATUS_FIRST_KEY = 9  # 0-indexed pixel under key 10
 STATUS_LIGHT_COUNT = 3
 STATUS_COLORS = {
-    1: (4, 4, 4),    # off: dim white
+    1: (0, 0, 0),    # off: unlit
     2: (0, 60, 0),   # on, live picture: green
     3: (50, 25, 0),  # warming or cooling: amber
     4: (60, 0, 0),   # unreachable: red
     5: (0, 0, 60),   # on and blanked: blue
     6: (40, 0, 50),  # on and frozen: purple
 }
-NO_STATUS = (0,) * STATUS_LIGHT_COUNT  # unlit: the Pi has said nothing
-# The Pi repeats its report every 2s. Go dark when it stops, so a stopped
-# service cannot leave a stale green light on.
+NO_STATUS = (0,) * STATUS_LIGHT_COUNT  # unlit until the Pi's first report
+# The Pi repeats its report every 2s. When it stops, or never starts, show
+# every projector as unreachable: the buttons cannot reach them either, and
+# an unlit row would look the same as three projectors that are off.
+PI_SILENT = (4,) * STATUS_LIGHT_COUNT
 STATUS_STALE_S = 15
 PIXEL_COUNT = 12
 
@@ -137,7 +139,7 @@ except Exception as e:
     pixel_pin = None
 
 pixel_buffer = bytearray(PIXEL_COUNT * 3)
-_last_status_time = None
+_last_status_time = time.monotonic()
 
 
 def show_status(codes):
@@ -159,7 +161,7 @@ def update_status_lights():
         show_status(report[1 : 1 + STATUS_LIGHT_COUNT])
         _last_status_time = now
     elif _last_status_time is not None and now - _last_status_time > STATUS_STALE_S:
-        show_status(NO_STATUS)
+        show_status(PI_SILENT)
         _last_status_time = None
 
 

@@ -23,14 +23,16 @@ The lights under keys 10, 11 and 12 show what the Left, Right and Rear projector
 | Green | On, live picture |
 | Blue | On, blanked |
 | Purple | On, frozen |
-| Dim white | Off |
+| Unlit | Off |
 | Amber | Warming up or cooling down |
 | Red | The Pi cannot reach the projector |
-| Dark | The Macropad has heard nothing from the Pi for 15 seconds |
+| All three red | Every projector is unreachable, or the Macropad has heard nothing from the Pi for 15 seconds |
 
 The Pi checks all three projectors every 5 seconds, and again right after each button press. While any projector is unreachable it checks every 20 seconds, so a red light can take up to 20 seconds to clear after the projector comes back. Pressing any button forces an immediate check.
 
-All three dark means the service is stopped, the Macropad is running firmware from before the lights were added, or the Pi is running a service from before then. A projector that is both blanked and frozen shows blue. Blank and freeze set from the Sony remote show up too, since the lights come from the projector's own answers. Each status change is logged once as `Projector status: left=ON, right=BLANKED, rear=unreachable`.
+One red light on a projector that still answers ping usually means PJLink is switched off on that projector. A firmware upgrade resets it, which happened to both front projectors on 2026-10-10. Re-enable PJLink with authentication off and the light clears within 20 seconds.
+
+All three red with the projectors known to be fine means the Pi service is stopped or the Pi is running a service from before the lights were added. Check `systemctl status macropad-control.service`. A projector that is both blanked and frozen shows blue. Blank and freeze set from the Sony remote show up too, since the lights come from the projector's own answers. Each status change is logged once as `Projector status: left=ON, right=BLANKED, rear=unreachable`.
 
 Checks and button presses take turns on the Pi, because each projector accepts one connection at a time. A button pressed during a check waits for it to finish. That is a few hundredths of a second normally and up to 2 seconds when a projector is unreachable.
 
