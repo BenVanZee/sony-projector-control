@@ -103,7 +103,7 @@ def send_button(button_num):
 
 
 # ---------------------------------------------------------------------------
-# Status lights — keys 10-12 show Left, Right, Rear power state
+# Status lights — keys 10-12 show Left, Right, Rear display state
 # ---------------------------------------------------------------------------
 # The Pi sends: marker byte, one code per projector, zero padding. Codes must
 # match STATUS_CODES in hid_macropad_control.py. Colors are (red, green, blue).
@@ -112,9 +112,11 @@ STATUS_FIRST_KEY = 9  # 0-indexed pixel under key 10
 STATUS_LIGHT_COUNT = 3
 STATUS_COLORS = {
     1: (4, 4, 4),    # off: dim white
-    2: (0, 60, 0),   # on: green
+    2: (0, 60, 0),   # on, live picture: green
     3: (50, 25, 0),  # warming or cooling: amber
     4: (60, 0, 0),   # unreachable: red
+    5: (0, 0, 60),   # on and blanked: blue
+    6: (40, 0, 50),  # on and frozen: purple
 }
 NO_STATUS = (0,) * STATUS_LIGHT_COUNT  # unlit: the Pi has said nothing
 # The Pi repeats its report every 2s. Go dark when it stops, so a stopped

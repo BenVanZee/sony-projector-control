@@ -85,6 +85,36 @@ class ProjectorControllerTests(unittest.TestCase):
         self.assertEqual([b"%1POWR ?\r"], scripted.sent)
         self.assertEqual(3.0, scripted.timeout)
 
+    def display_state_after(self, *replies):
+        scripted = ScriptedSocket(recv_steps=[b"PJLINK 0\r", *replies])
+        controller = ProjectorController("10.10.10.2")
+        with mock.patch("projector_control.socket.socket", return_value=scripted):
+            return controller.get_display_state(), scripted.sent
+
+    def test_display_state_of_a_projector_that_is_off_asks_only_for_power(self):
+        """Blank and freeze mean nothing while the lamp is off."""
+        state, sent = self.display_state_after(b"%1POWR=0\r")
+
+        self.assertEqual("OFF", state)
+        self.assertEqual([b"%1POWR ?\r"], sent)
+
+    def test_display_state_reports_blanked_before_frozen(self):
+        """A blanked screen is what the room sees, whatever is frozen under it."""
+        state, sent = self.display_state_after(b"%1POWR=1\r", b"%1AVMT=31\r")
+
+        self.assertEqual("BLANKED", state)
+        self.assertEqual([b"%1POWR ?\r", b"%1AVMT ?\r"], sent)
+
+    def test_display_state_reports_frozen_and_live(self):
+        frozen, _ = self.display_state_after(
+            b"%1POWR=1\r", b"%1AVMT=30\r", b"%2FREZ=1\r"
+        )
+        live, _ = self.display_state_after(
+            b"%1POWR=1\r", b"%1AVMT=30\r", b"%2FREZ=0\r"
+        )
+
+        self.assertEqual(("FROZEN", "ON"), (frozen, live))
+
     def test_idempotent_query_retries_once_after_connection_reset(self):
         """A reset response socket gets one fresh-connection retry."""
         first = ScriptedSocket(

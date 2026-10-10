@@ -55,13 +55,20 @@ INITIAL_BACKOFF_S = 0.25
 HEALTHY_CONNECTION_S = 5.0
 # Ping the watchdog at most this often; the poll loop runs ~10x/second
 HEARTBEAT_INTERVAL_S = 2.0
-# Status lights: keys 10-12 show the power state of the first three projectors
+# Status lights: keys 10-12 show the display state of the first three projectors
 # in config order (Left, Right, Rear). The report is the marker byte, one code
 # per projector, then zero padding. Codes must match STATUS_COLORS in code.py.
 STATUS_REPORT_MARKER = 0x53
 STATUS_LIGHT_COUNT = 3
 STATUS_UNREACHABLE = 4
-STATUS_CODES = {"OFF": 1, "ON": 2, "WARMING": 3, "COOLING": 3}
+STATUS_CODES = {
+    "OFF": 1,
+    "ON": 2,
+    "WARMING": 3,
+    "COOLING": 3,
+    "BLANKED": 5,
+    "FROZEN": 6,
+}
 STATUS_POLL_INTERVAL_S = 5.0
 # Poll less often while a projector is unreachable, so its connect timeouts
 # rarely sit in front of a button press.
@@ -694,7 +701,7 @@ class HIDMacropadController:
     # Status lights
     # ------------------------------------------------------------------
     def _poll_status_if_due(self) -> None:
-        """Read each projector's power state and stage it for the Macropad."""
+        """Read each projector's display state and stage it for the Macropad."""
         now = time.monotonic()
         if now < self._next_status_poll:
             return
@@ -702,7 +709,7 @@ class HIDMacropadController:
 
         ips = [p["ip"] for p in self.projectors[:STATUS_LIGHT_COUNT]]
         try:
-            states = self.status_manager.run_on(ips, "get_power_status")
+            states = self.status_manager.run_on(ips, "get_display_state")
         except Exception as e:
             self.logger.warning("Status poll failed: %s", e)
             return

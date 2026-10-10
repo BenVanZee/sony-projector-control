@@ -43,9 +43,10 @@ class ProjectorController:
         self.ip = ip
         self.port = port
         self.timeout = timeout
-        # Routine status polls connect every few seconds; logging each connect
-        # at INFO or ERROR would flood the journal.
-        self._connect_log_level = logging.DEBUG if quiet else None
+        # Routine status polls run every few seconds; logging each connect and
+        # reply at INFO or ERROR would flood the journal.
+        self._info_level = logging.DEBUG if quiet else logging.INFO
+        self._connect_error_level = logging.DEBUG if quiet else logging.ERROR
         self.socket = None
         self.lock = threading.Lock()
         self._recv_buffer = bytearray()
@@ -75,10 +76,7 @@ class ProjectorController:
                     raise ConnectionError("PJLink authentication is required")
                 if greeting != "PJLINK 0":
                     raise ConnectionError(f"Invalid PJLink greeting: {greeting!r}")
-                logger.log(
-                    self._connect_log_level or logging.INFO,
-                    f"Connected to {self.ip}: {greeting}",
-                )
+                logger.log(self._info_level, f"Connected to {self.ip}: {greeting}")
                 return True
             except Exception as e:
                 if candidate is not None:
@@ -89,8 +87,7 @@ class ProjectorController:
                 self.socket = None
                 self._recv_buffer.clear()
                 logger.log(
-                    self._connect_log_level or logging.ERROR,
-                    f"Failed to connect to {self.ip}: {e}",
+                    self._connect_error_level, f"Failed to connect to {self.ip}: {e}"
                 )
                 return False
 
@@ -205,6 +202,20 @@ class ProjectorController:
                 return "MUTED"
         return None
         
+    def get_display_state(self) -> Optional[str]:
+        """Power state, refined to BLANKED or FROZEN while the projector is on.
+
+        Blank wins over freeze: a blanked screen is what the room sees.
+        """
+        power = self.get_power_status()
+        if power != "ON":
+            return power
+        if self.get_mute_status() == "MUTED":
+            return "BLANKED"
+        if self.get_freeze_status() == "FROZEN":
+            return "FROZEN"
+        return "ON"
+
     def set_mute(self, mute: bool) -> bool:
         """Mute/unmute audio and video"""
         command = "%1AVMT 31\r" if mute else "%1AVMT 30\r"
@@ -245,17 +256,17 @@ class ProjectorController:
     def get_freeze_status(self) -> Optional[str]:
         """Get freeze status using correct PJLink FREZ command"""
         response = self.send_command("%2FREZ ?\r")
-        logger.info(f"Freeze status response from {self.ip}: {response}")
+        logger.log(self._info_level, f"Freeze status response from {self.ip}: {response}")
         
         if response:
             # Import config for status mapping
             try:
                 from config import FREEZE_STATUS
-                logger.info(f"Available freeze status patterns: {FREEZE_STATUS}")
+                logger.log(self._info_level, f"Available freeze status patterns: {FREEZE_STATUS}")
                 # Reverse lookup to find the status
                 for response_pattern, status_name in FREEZE_STATUS.items():
                     if response == response_pattern:
-                        logger.info(f"Matched freeze status: {response_pattern} -> {status_name}")
+                        logger.log(self._info_level, f"Matched freeze status: {response_pattern} -> {status_name}")
                         return status_name
                 logger.warning(f"No matching freeze status pattern found for response: {response}")
             except ImportError:

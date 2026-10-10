@@ -524,7 +524,16 @@ class HIDMacropadControllerTests(unittest.TestCase):
             bytes([0x53, 2, 3, 4, 0, 0, 0, 0]), controller._status_report
         )
         controller.status_manager.run_on.assert_called_once_with(
-            ["10.0.0.1", "10.0.0.2", "10.0.0.3"], "get_power_status"
+            ["10.0.0.1", "10.0.0.2", "10.0.0.3"], "get_display_state"
+        )
+
+    def test_blanked_and_frozen_projectors_get_their_own_codes(self):
+        controller = self.make_status_controller(["BLANKED", "FROZEN", "ON"])
+
+        controller._poll_status_if_due()
+
+        self.assertEqual(
+            bytes([0x53, 5, 6, 2, 0, 0, 0, 0]), controller._status_report
         )
 
     def test_status_poll_waits_for_its_interval(self):

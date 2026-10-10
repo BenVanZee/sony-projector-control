@@ -25,7 +25,7 @@ Unsupported historical GPIO, keyboard, and generic USB-keypad approaches are ret
 | 7 | Freeze front projectors |
 | 8 | Unfreeze front projectors |
 | 9 | Toggle front freeze |
-| 10–12 | No action; safe for input testing. Their lights show Left, Right and Rear power status |
+| 10–12 | No action; safe for input testing. Their lights show Left, Right and Rear status |
 
 See [Installation](docs/INSTALL.md) and [Operations and recovery](docs/OPERATIONS.md).
 
